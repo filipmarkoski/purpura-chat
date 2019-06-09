@@ -317,7 +317,7 @@ public class UserListFragment extends Fragment implements
 
         if(mGeoApiContext == null){
             mGeoApiContext = new GeoApiContext.Builder()
-                    .apiKey(getString(R.string.google_maps_api_key))
+                    .apiKey(getString(R.string.google_maps_key))
                     .build();
         }
     }
