@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "874495216025",
+    "firebase_url": "https://chat-37f8f.firebaseio.com",
+    "project_id": "chat-37f8f",
+    "storage_bucket": "chat-37f8f.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:874495216025:android:3313e36e20d589c9",
+        "android_client_info": {
+          "package_name": "com.purpura.googlemaps2018"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "874495216025-k1dob2thnepdtuf32fimr83lgu31lbjm.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.purpura.googlemaps2018",
+            "certificate_hash": "52f3d4d7efaf54967aa30aef1e875b333412b82e"
+          }
+        },
+        {
+          "client_id": "874495216025-go1pece4a3fa93taj2dijkdh2mbl97dq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA-zfryTyytpRcMvARj4hatEYgmlGLrDmU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "874495216025-go1pece4a3fa93taj2dijkdh2mbl97dq.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
