@@ -1,5 +1,6 @@
 package com.purpura.googlemaps2018.models;
 
+import android.media.Image;
 import android.os.Parcel;
 import android.os.Parcelable;
 
@@ -9,12 +10,35 @@ public class User implements Parcelable{
     private String user_id;
     private String username;
     private String avatar;
+    private int age;
+    private String address;
+    private Image photo;
 
-    public User(String email, String user_id, String username, String avatar) {
+
+    public int getAge() {
+        return age;
+    }
+
+    public void setAge(int age) {
+        this.age = age;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public User(String email, String user_id, String username, String avatar, int age, String address) {
         this.email = email;
         this.user_id = user_id;
         this.username = username;
         this.avatar = avatar;
+        this.age=age;
+        this.address=address;
+
     }
 
     public User() {

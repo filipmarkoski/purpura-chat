@@ -33,7 +33,7 @@ public class RegisterActivity extends AppCompatActivity implements
     private static final String TAG = "RegisterActivity";
 
     //widgets
-    private EditText mEmail, mPassword, mConfirmPassword;
+    private EditText mEmail, mPassword, mConfirmPassword, mAddress, mAge;
     private ProgressBar mProgressBar;
 
     //vars
@@ -47,7 +47,10 @@ public class RegisterActivity extends AppCompatActivity implements
         mEmail = (EditText) findViewById(R.id.input_email);
         mPassword = (EditText) findViewById(R.id.input_password);
         mConfirmPassword = (EditText) findViewById(R.id.input_confirm_password);
+        mAddress = (EditText) findViewById(R.id.input_address);
+
         mProgressBar = (ProgressBar) findViewById(R.id.progressBar);
+
 
         findViewById(R.id.btn_register).setOnClickListener(this);
 
@@ -79,7 +82,7 @@ public class RegisterActivity extends AppCompatActivity implements
                             user.setEmail(email);
                             user.setUsername(email.substring(0, email.indexOf("@")));
                             user.setUser_id(FirebaseAuth.getInstance().getUid());
-
+                            user.setAddress("XXXXX");
                             FirebaseFirestoreSettings settings = new FirebaseFirestoreSettings.Builder()
                                     .setTimestampsInSnapshotsEnabled(true)
                                     .build();
