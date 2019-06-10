@@ -1,8 +1,10 @@
 package com.purpura.googlemaps2018.ui;
 
+import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.annotation.RequiresApi;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
@@ -57,7 +59,6 @@ public class ChatroomActivity extends AppCompatActivity implements
     private FirebaseFirestore mDb;
     private ArrayList<ChatMessage> mMessages = new ArrayList<>();
     private Set<String> mMessageIds = new HashSet<>();
-    private ArrayList<User> mUserList = new ArrayList<>();
     private ArrayList<UserLocation> mUserLocations = new ArrayList<>();
 
 
@@ -151,16 +152,15 @@ public class ChatroomActivity extends AppCompatActivity implements
                         if(queryDocumentSnapshots != null){
 
                             // Clear the list and add all the users again
-                            mUserList.clear();
-                            mUserList = new ArrayList<>();
+                            //mChatroom.resetUsers();
 
                             for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
                                 User user = doc.toObject(User.class);
-                                mUserList.add(user);
+                                mChatroom.addUser(user);
                                 getUserLocation(user);
                             }
 
-                            Log.d(TAG, "onEvent: user list size: " + mUserList.size());
+                            Log.d(TAG, "onEvent: user list size: " + mChatroom.getUsers().size());
                         }
                     }
                 });
@@ -232,12 +232,13 @@ public class ChatroomActivity extends AppCompatActivity implements
         mMessage.setText("");
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.N)
     private void inflateUserListFragment(){
 		hideSoftKeyboard();
 		
         UserListFragment fragment = UserListFragment.newInstance();
         Bundle bundle = new Bundle();
-        bundle.putParcelableArrayList(getString(R.string.intent_user_list), mUserList);
+        bundle.putParcelableArrayList(getString(R.string.intent_user_list), mChatroom.getUsersAsList());
         bundle.putParcelableArrayList(getString(R.string.intent_user_locations), mUserLocations);
         fragment.setArguments(bundle);
 
@@ -280,6 +281,7 @@ public class ChatroomActivity extends AppCompatActivity implements
                 .document(FirebaseAuth.getInstance().getUid());
 
         User user = ((UserClient)(getApplicationContext())).getUser();
+        mChatroom.addUser(user);
         joinChatroomRef.set(user); // Don't care about listening for completion.
     }
 
@@ -312,6 +314,7 @@ public class ChatroomActivity extends AppCompatActivity implements
         return super.onCreateOptionsMenu(menu);
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.N)
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch(item.getItemId()){
