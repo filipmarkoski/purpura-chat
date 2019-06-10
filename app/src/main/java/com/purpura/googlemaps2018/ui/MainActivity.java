@@ -23,17 +23,12 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
-import com.purpura.googlemaps2018.R;
-import com.purpura.googlemaps2018.UserClient;
-import com.purpura.googlemaps2018.adapters.ChatroomRecyclerAdapter;
-import com.purpura.googlemaps2018.models.Chatroom;
-import com.purpura.googlemaps2018.models.User;
-import com.purpura.googlemaps2018.models.UserLocation;
-import com.purpura.googlemaps2018.services.LocationService;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -52,9 +47,17 @@ import com.google.firebase.firestore.GeoPoint;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
+import com.purpura.googlemaps2018.R;
+import com.purpura.googlemaps2018.UserClient;
+import com.purpura.googlemaps2018.adapters.ChatroomRecyclerAdapter;
+import com.purpura.googlemaps2018.models.Chatroom;
+import com.purpura.googlemaps2018.models.User;
+import com.purpura.googlemaps2018.models.UserLocation;
+import com.purpura.googlemaps2018.services.LocationService;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -84,6 +87,7 @@ public class MainActivity extends AppCompatActivity implements
     private boolean mLocationPermissionGranted = false;
     private FusedLocationProviderClient mFusedLocationClient;
     private UserLocation mUserLocation;
+    private User currentUser;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -129,6 +133,7 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     private void getUserDetails(){
+
         if(mUserLocation == null){
             mUserLocation = new UserLocation();
             DocumentReference userRef = mDb.collection(getString(R.string.collection_users))
@@ -139,9 +144,9 @@ public class MainActivity extends AppCompatActivity implements
                 public void onComplete(@NonNull Task<DocumentSnapshot> task) {
                     if(task.isSuccessful()){
                         Log.d(TAG, "onComplete: successfully set the user client.");
-                        User user = task.getResult().toObject(User.class);
-                        mUserLocation.setUser(user);
-						((UserClient)(getApplicationContext())).setUser(user);
+                        currentUser = task.getResult().toObject(User.class);
+                        mUserLocation.setUser(currentUser);
+                        ((UserClient) (getApplicationContext())).setUser(currentUser);
                         getLastKnownLocation();
                     }
                 }
@@ -150,6 +155,7 @@ public class MainActivity extends AppCompatActivity implements
         else{
             getLastKnownLocation();
         }
+
     }
 
     private void getLastKnownLocation() {
@@ -323,6 +329,8 @@ public class MainActivity extends AppCompatActivity implements
         mChatroomRecyclerView.setLayoutManager(new LinearLayoutManager(this));
     }
 
+
+
     private void getChatrooms(){
 
         FirebaseFirestoreSettings settings = new FirebaseFirestoreSettings.Builder()
@@ -347,10 +355,12 @@ public class MainActivity extends AppCompatActivity implements
                     for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
 
                         Chatroom chatroom = doc.toObject(Chatroom.class);
-                        if(!mChatroomIds.contains(chatroom.getChatroom_id())){
+                        String email = Objects.requireNonNull(FirebaseAuth.getInstance().getCurrentUser()).getEmail();
+                        if(chatroom.canAccess(email) && !mChatroomIds.contains(chatroom.getChatroom_id())){
                             mChatroomIds.add(chatroom.getChatroom_id());
                             mChatrooms.add(chatroom);
                         }
+
                     }
                     Log.d(TAG, "onEvent: number of chatrooms: " + mChatrooms.size());
                     mChatroomRecyclerAdapter.notifyDataSetChanged();
@@ -360,10 +370,12 @@ public class MainActivity extends AppCompatActivity implements
         });
     }
 
-    private void buildNewChatroom(String chatroomName){
+    private void buildNewChatroom(String chatroomName, Boolean isPrivate){
 
         final Chatroom chatroom = new Chatroom();
         chatroom.setTitle(chatroomName);
+        chatroom.setPrivate(isPrivate);
+        chatroom.addUser(currentUser);
 
 //        FirebaseFirestoreSettings settings = new FirebaseFirestoreSettings.Builder()
 //                .setTimestampsInSnapshotsEnabled(true)
@@ -382,6 +394,7 @@ public class MainActivity extends AppCompatActivity implements
                 hideDialog();
 
                 if(task.isSuccessful()){
+
                     navChatroomActivity(chatroom);
                 }else{
                     View parentLayout = findViewById(android.R.id.content);
@@ -401,6 +414,50 @@ public class MainActivity extends AppCompatActivity implements
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Enter a chatroom name");
+/*
+        final EditText input = new EditText(this);
+        input.setInputType(InputType.TYPE_CLASS_TEXT);
+        builder.setView(input);*/
+        final Boolean[] isPrivate = {false};
+        View checkBoxView = View.inflate(this, R.layout.private_checkbox, null);
+        CheckBox checkBox = (CheckBox) checkBoxView.findViewById(R.id.checkbox);
+        checkBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+
+                isPrivate[0] =isChecked;
+            }
+        });
+        EditText chatRoomName = (EditText) checkBoxView.findViewById(R.id.chatRoomName);
+        checkBox.setText("Private chatroom");
+        builder.setView(checkBoxView).setCancelable(false);
+
+        builder.setPositiveButton("CREATE", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                if(!chatRoomName.getText().toString().equals("")){
+                    buildNewChatroom(chatRoomName.getText().toString(), isPrivate[0]);
+                }
+                else {
+                    Toast.makeText(MainActivity.this, "Enter a chatroom name", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+            }
+        });
+
+        builder.show();
+    }
+
+    private void newPrivateChatroomDialog(){
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Enter a chatroom name");
 
         final EditText input = new EditText(this);
         input.setInputType(InputType.TYPE_CLASS_TEXT);
@@ -410,7 +467,7 @@ public class MainActivity extends AppCompatActivity implements
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 if(!input.getText().toString().equals("")){
-                    buildNewChatroom(input.getText().toString());
+                    buildNewChatroom(input.getText().toString(), false);
                 }
                 else {
                     Toast.makeText(MainActivity.this, "Enter a chatroom name", Toast.LENGTH_SHORT).show();

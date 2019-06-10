@@ -1,8 +1,9 @@
 package com.purpura.googlemaps2018.models;
 
-import android.media.Image;
 import android.os.Parcel;
 import android.os.Parcelable;
+
+import java.util.Objects;
 
 public class User implements Parcelable{
 
@@ -10,35 +11,26 @@ public class User implements Parcelable{
     private String user_id;
     private String username;
     private String avatar;
-    private int age;
-    private String address;
-    private Image photo;
 
-
-    public int getAge() {
-        return age;
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof User)) return false;
+        User user = (User) o;
+        return Objects.equals(getEmail(), user.getEmail()) &&
+                Objects.equals(getUser_id(), user.getUser_id());
     }
 
-    public void setAge(int age) {
-        this.age = age;
+    @Override
+    public int hashCode() {
+        return Objects.hash(getEmail(), getUser_id());
     }
 
-    public String getAddress() {
-        return address;
-    }
-
-    public void setAddress(String address) {
-        this.address = address;
-    }
-
-    public User(String email, String user_id, String username, String avatar, int age, String address) {
+    public User(String email, String user_id, String username, String avatar) {
         this.email = email;
         this.user_id = user_id;
         this.username = username;
         this.avatar = avatar;
-        this.age=age;
-        this.address=address;
-
     }
 
     public User() {

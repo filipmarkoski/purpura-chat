@@ -1,25 +1,29 @@
 package com.purpura.googlemaps2018.adapters;
 
+import android.os.Build;
 import android.support.annotation.NonNull;
+import android.support.annotation.RequiresApi;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-
 import com.purpura.googlemaps2018.R;
 import com.purpura.googlemaps2018.models.User;
+import com.purpura.googlemaps2018.models.UserSetting;
 
 import java.util.ArrayList;
+import java.util.stream.Collectors;
 
 public class UserRecyclerAdapter extends RecyclerView.Adapter<UserRecyclerAdapter.ViewHolder>{
 
     private ArrayList<User> mUsers = new ArrayList<>();
     private UserListRecyclerClickListener mClickListener;
 
-    public UserRecyclerAdapter(ArrayList<User> users, UserListRecyclerClickListener clickListener) {
-        mUsers = users;
+    @RequiresApi(api = Build.VERSION_CODES.N)
+    public UserRecyclerAdapter(ArrayList<UserSetting> users, UserListRecyclerClickListener clickListener) {
+        mUsers = (ArrayList<User>) users.stream().map(UserSetting::getUser).collect(Collectors.toList());
         mClickListener = clickListener;
     }
 

@@ -5,11 +5,13 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.annotation.RequiresApi;
 import android.support.v4.app.Fragment;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.LinearLayoutManager;
@@ -21,15 +23,6 @@ import android.view.ViewGroup;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
 
-
-import com.purpura.googlemaps2018.R;
-import com.purpura.googlemaps2018.adapters.UserRecyclerAdapter;
-import com.purpura.googlemaps2018.models.ClusterMarker;
-import com.purpura.googlemaps2018.models.PolylineData;
-import com.purpura.googlemaps2018.models.User;
-import com.purpura.googlemaps2018.models.UserLocation;
-import com.purpura.googlemaps2018.util.MyClusterManagerRenderer;
-import com.purpura.googlemaps2018.util.ViewWeightAnimationWrapper;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;
@@ -53,6 +46,14 @@ import com.google.maps.android.clustering.ClusterManager;
 import com.google.maps.internal.PolylineEncoding;
 import com.google.maps.model.DirectionsResult;
 import com.google.maps.model.DirectionsRoute;
+import com.purpura.googlemaps2018.R;
+import com.purpura.googlemaps2018.adapters.UserRecyclerAdapter;
+import com.purpura.googlemaps2018.models.ClusterMarker;
+import com.purpura.googlemaps2018.models.PolylineData;
+import com.purpura.googlemaps2018.models.UserLocation;
+import com.purpura.googlemaps2018.models.UserSetting;
+import com.purpura.googlemaps2018.util.MyClusterManagerRenderer;
+import com.purpura.googlemaps2018.util.ViewWeightAnimationWrapper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -79,7 +80,7 @@ public class UserListFragment extends Fragment implements
 
 
     //vars
-    private ArrayList<User> mUserList = new ArrayList<>();
+    private ArrayList<UserSetting> mUserList = new ArrayList<>();
     private ArrayList<UserLocation> mUserLocations = new ArrayList<>();
     private UserRecyclerAdapter mUserRecyclerAdapter;
     private GoogleMap mGoogleMap;
@@ -104,7 +105,7 @@ public class UserListFragment extends Fragment implements
         super.onCreate(savedInstanceState);
         if (mUserLocations.size() == 0) { // make sure the list doesn't duplicate by navigating back
             if (getArguments() != null) {
-                final ArrayList<User> users = getArguments().getParcelableArrayList(getString(R.string.intent_user_list));
+                final ArrayList<UserSetting> users = getArguments().getParcelableArrayList(getString(R.string.intent_user_list));
                 mUserList.addAll(users);
 
                 final ArrayList<UserLocation> locations = getArguments().getParcelableArrayList(getString(R.string.intent_user_locations));
@@ -113,6 +114,7 @@ public class UserListFragment extends Fragment implements
         }
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.N)
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -322,6 +324,7 @@ public class UserListFragment extends Fragment implements
         }
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.N)
     private void initUserListRecyclerView() {
         mUserRecyclerAdapter = new UserRecyclerAdapter(mUserList, this);
         mUserListRecyclerView.setAdapter(mUserRecyclerAdapter);
@@ -673,9 +676,9 @@ public class UserListFragment extends Fragment implements
 
     @Override
     public void onUserClicked(int position) {
-        Log.d(TAG, "onUserClicked: selected a user: " + mUserList.get(position).getUser_id());
+        Log.d(TAG, "onUserClicked: selected a user: " + mUserList.get(position).getUser().getUser_id());
 
-        String selectedUserId = mUserList.get(position).getUser_id();
+        String selectedUserId = mUserList.get(position).getUser().getUser_id();
 
         for(ClusterMarker clusterMarker: mClusterMarkers){
             if(selectedUserId.equals(clusterMarker.getUser().getUser_id())){
