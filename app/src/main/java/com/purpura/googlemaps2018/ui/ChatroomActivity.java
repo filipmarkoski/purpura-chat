@@ -17,13 +17,6 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.EditText;
 
-import com.purpura.googlemaps2018.R;
-import com.purpura.googlemaps2018.UserClient;
-import com.purpura.googlemaps2018.adapters.ChatMessageRecyclerAdapter;
-import com.purpura.googlemaps2018.models.ChatMessage;
-import com.purpura.googlemaps2018.models.Chatroom;
-import com.purpura.googlemaps2018.models.User;
-import com.purpura.googlemaps2018.models.UserLocation;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
@@ -37,6 +30,14 @@ import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
+import com.purpura.googlemaps2018.R;
+import com.purpura.googlemaps2018.UserClient;
+import com.purpura.googlemaps2018.adapters.ChatMessageRecyclerAdapter;
+import com.purpura.googlemaps2018.models.ChatMessage;
+import com.purpura.googlemaps2018.models.Chatroom;
+import com.purpura.googlemaps2018.models.User;
+import com.purpura.googlemaps2018.models.UserLocation;
+import com.purpura.googlemaps2018.models.UserSetting;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -134,7 +135,7 @@ public class ChatroomActivity extends AppCompatActivity implements
     }
 
     private void getChatroomUsers(){
-
+/*
         CollectionReference usersRef = mDb
                 .collection(getString(R.string.collection_chatrooms))
                 .document(mChatroom.getChatroom_id())
@@ -152,7 +153,7 @@ public class ChatroomActivity extends AppCompatActivity implements
                         if(queryDocumentSnapshots != null){
 
                             // Clear the list and add all the users again
-                            //mChatroom.resetUsers();
+                            mChatroom.resetUsers();
 
                             for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
                                 User user = doc.toObject(User.class);
@@ -163,7 +164,10 @@ public class ChatroomActivity extends AppCompatActivity implements
                             Log.d(TAG, "onEvent: user list size: " + mChatroom.getUsers().size());
                         }
                     }
-                });
+                });*/
+        for (UserSetting userSetting : mChatroom.getUsers()) {
+            getUserLocation(userSetting.getUser());
+        }
     }
 
     private void initChatroomRecyclerView(){
@@ -232,13 +236,13 @@ public class ChatroomActivity extends AppCompatActivity implements
         mMessage.setText("");
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.N)
+
     private void inflateUserListFragment(){
 		hideSoftKeyboard();
 		
         UserListFragment fragment = UserListFragment.newInstance();
         Bundle bundle = new Bundle();
-        bundle.putParcelableArrayList(getString(R.string.intent_user_list), mChatroom.getUsersAsList());
+        bundle.putParcelableArrayList(getString(R.string.intent_user_list), mChatroom.getUsers());
         bundle.putParcelableArrayList(getString(R.string.intent_user_locations), mUserLocations);
         fragment.setArguments(bundle);
 
@@ -300,6 +304,11 @@ public class ChatroomActivity extends AppCompatActivity implements
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        DocumentReference joinChatroomRef = mDb
+                .collection(getString(R.string.collection_chatrooms))
+                .document(mChatroom.getChatroom_id());
+
+        joinChatroomRef.set(mChatroom);
         if(mChatMessageEventListener != null){
             mChatMessageEventListener.remove();
         }

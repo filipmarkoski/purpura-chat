@@ -4,8 +4,8 @@ import android.os.Parcel;
 import android.os.Parcelable;
 
 public class UserSetting implements Parcelable {
-    User user;
-    Boolean enableSharingLocation;
+    private User user;
+    private Boolean enableSharingLocation;
 
     public UserSetting() {
         user = new User();
@@ -16,6 +16,7 @@ public class UserSetting implements Parcelable {
         user = (User) in.readValue(User.class.getClassLoader());
         enableSharingLocation = (Boolean) in.readValue(Boolean.class.getClassLoader());
     }
+
 
     public User getUser() {
         return user;
@@ -59,4 +60,6 @@ public class UserSetting implements Parcelable {
             return new UserSetting[size];
         }
     };
+
+
 }

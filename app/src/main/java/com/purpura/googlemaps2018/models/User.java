@@ -3,12 +3,28 @@ package com.purpura.googlemaps2018.models;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import java.util.Objects;
+
 public class User implements Parcelable{
 
     private String email;
     private String user_id;
     private String username;
     private String avatar;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof User)) return false;
+        User user = (User) o;
+        return Objects.equals(getEmail(), user.getEmail()) &&
+                Objects.equals(getUser_id(), user.getUser_id());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getEmail(), getUser_id());
+    }
 
     public User(String email, String user_id, String username, String avatar) {
         this.email = email;

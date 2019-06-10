@@ -29,14 +29,6 @@ import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
-import com.google.android.gms.tasks.OnSuccessListener;
-import com.purpura.googlemaps2018.R;
-import com.purpura.googlemaps2018.UserClient;
-import com.purpura.googlemaps2018.adapters.ChatroomRecyclerAdapter;
-import com.purpura.googlemaps2018.models.Chatroom;
-import com.purpura.googlemaps2018.models.User;
-import com.purpura.googlemaps2018.models.UserLocation;
-import com.purpura.googlemaps2018.services.LocationService;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -55,10 +47,16 @@ import com.google.firebase.firestore.GeoPoint;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
+import com.purpura.googlemaps2018.R;
+import com.purpura.googlemaps2018.UserClient;
+import com.purpura.googlemaps2018.adapters.ChatroomRecyclerAdapter;
+import com.purpura.googlemaps2018.models.Chatroom;
+import com.purpura.googlemaps2018.models.User;
+import com.purpura.googlemaps2018.models.UserLocation;
+import com.purpura.googlemaps2018.services.LocationService;
 
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -89,6 +87,7 @@ public class MainActivity extends AppCompatActivity implements
     private boolean mLocationPermissionGranted = false;
     private FusedLocationProviderClient mFusedLocationClient;
     private UserLocation mUserLocation;
+    private User currentUser;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -134,6 +133,7 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     private void getUserDetails(){
+
         if(mUserLocation == null){
             mUserLocation = new UserLocation();
             DocumentReference userRef = mDb.collection(getString(R.string.collection_users))
@@ -144,9 +144,9 @@ public class MainActivity extends AppCompatActivity implements
                 public void onComplete(@NonNull Task<DocumentSnapshot> task) {
                     if(task.isSuccessful()){
                         Log.d(TAG, "onComplete: successfully set the user client.");
-                        User user = task.getResult().toObject(User.class);
-                        mUserLocation.setUser(user);
-						((UserClient)(getApplicationContext())).setUser(user);
+                        currentUser = task.getResult().toObject(User.class);
+                        mUserLocation.setUser(currentUser);
+                        ((UserClient) (getApplicationContext())).setUser(currentUser);
                         getLastKnownLocation();
                     }
                 }
@@ -155,6 +155,7 @@ public class MainActivity extends AppCompatActivity implements
         else{
             getLastKnownLocation();
         }
+
     }
 
     private void getLastKnownLocation() {
@@ -374,6 +375,7 @@ public class MainActivity extends AppCompatActivity implements
         final Chatroom chatroom = new Chatroom();
         chatroom.setTitle(chatroomName);
         chatroom.setPrivate(isPrivate);
+        chatroom.addUser(currentUser);
 
 //        FirebaseFirestoreSettings settings = new FirebaseFirestoreSettings.Builder()
 //                .setTimestampsInSnapshotsEnabled(true)
@@ -423,6 +425,7 @@ public class MainActivity extends AppCompatActivity implements
 
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+
                 isPrivate[0] =isChecked;
             }
         });

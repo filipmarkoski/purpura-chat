@@ -1,25 +1,18 @@
 package com.purpura.googlemaps2018.models;
 
-import android.annotation.TargetApi;
-import android.os.Build;
 import android.os.Parcel;
 import android.os.Parcelable;
-import android.support.annotation.RequiresApi;
 
 import java.util.ArrayList;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
-public class Chatroom implements Parcelable, ChatInterface {
+public class Chatroom implements Parcelable {
 
 
     private String title;
     private String chatroom_id;
     private Boolean isPrivate;
-    ArrayList<UserSetting> users;
+    private ArrayList<UserSetting> users;
     public Chatroom(String title, String chatroom_id, Boolean isPrivate) {
         this.title = title;
         this.chatroom_id = chatroom_id;
@@ -36,6 +29,8 @@ public class Chatroom implements Parcelable, ChatInterface {
     protected Chatroom(Parcel in) {
         title = in.readString();
         chatroom_id = in.readString();
+        users = in.readArrayList(UserSetting.class.getClassLoader());
+        isPrivate = (Boolean) in.readValue(Boolean.class.getClassLoader());
     }
 
     public static final Creator<Chatroom> CREATOR = new Creator<Chatroom>() {
@@ -83,15 +78,20 @@ public class Chatroom implements Parcelable, ChatInterface {
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeString(title);
         dest.writeString(chatroom_id);
+        dest.writeList(users);
+        dest.writeValue(isPrivate);
     }
 
-    @Override
-    public Boolean isPrivate() {
+
+    public Boolean getPrivate() {
         return isPrivate;
     }
 
-    @TargetApi(Build.VERSION_CODES.N)
-    @Override
+    public void setUsers(ArrayList<UserSetting> users) {
+        this.users = users;
+    }
+
+
     public Boolean canAccess(final String userEmail) {
         return !isPrivate || getSettingForEmail(userEmail)!=null;
     }
@@ -100,15 +100,23 @@ public class Chatroom implements Parcelable, ChatInterface {
         return users;
     }
 
+
     public void addUser (User user) {
-        users.add( new UserSetting(user,false));
+        if (getSettingForEmail(user.getEmail()) == null)
+            users.add(new UserSetting(user, false));
+
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.N)
+
     public UserSetting getSettingForEmail (String email){
-        return users.stream().filter(userSetting -> userSetting.getUser().getEmail().equals(email)).findAny().orElse(null);
+        for (UserSetting userSetting : users) {
+            if (userSetting.getUser().getEmail().equals(email)) {
+                return userSetting;
+            }
+        }
+        return null;
     }
-    @RequiresApi(api = Build.VERSION_CODES.N)
+
     public void enableUserLocation (User user){
 
         Objects.requireNonNull(getSettingForEmail(user.getEmail())).setEnableSharingLocation(true);
@@ -123,10 +131,5 @@ public class Chatroom implements Parcelable, ChatInterface {
         users = new ArrayList<>();
     }
 
-
-    @RequiresApi(api = Build.VERSION_CODES.N)
-    public ArrayList<User> getUsersAsList(){
-        return (ArrayList<User>) users.stream().map(UserSetting::getUser).collect(Collectors.toList());
-    }
 
 }
