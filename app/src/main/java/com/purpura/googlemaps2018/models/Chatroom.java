@@ -4,7 +4,6 @@ import android.os.Parcel;
 import android.os.Parcelable;
 
 import java.util.ArrayList;
-import java.util.Objects;
 
 public class Chatroom implements Parcelable {
 
@@ -117,9 +116,13 @@ public class Chatroom implements Parcelable {
         return null;
     }
 
-    public void enableUserLocation (User user){
-
-        Objects.requireNonNull(getSettingForEmail(user.getEmail())).setEnableSharingLocation(true);
+    public Boolean toggleUserLocation(User user) {
+        UserSetting userSetting = getSettingForEmail(user.getEmail());
+        if (userSetting != null) {
+            userSetting.setEnableSharingLocation(!userSetting.getEnableSharingLocation());
+            return userSetting.getEnableSharingLocation();
+        }
+        return null;
     }
 
     public void setPrivate(Boolean aPrivate) {

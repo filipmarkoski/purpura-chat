@@ -1,10 +1,8 @@
 package com.purpura.googlemaps2018.ui;
 
-import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.annotation.RequiresApi;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
@@ -37,7 +35,6 @@ import com.purpura.googlemaps2018.models.ChatMessage;
 import com.purpura.googlemaps2018.models.Chatroom;
 import com.purpura.googlemaps2018.models.User;
 import com.purpura.googlemaps2018.models.UserLocation;
-import com.purpura.googlemaps2018.models.UserSetting;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -60,7 +57,7 @@ public class ChatroomActivity extends AppCompatActivity implements
     private FirebaseFirestore mDb;
     private ArrayList<ChatMessage> mMessages = new ArrayList<>();
     private Set<String> mMessageIds = new HashSet<>();
-    private ArrayList<UserLocation> mUserLocations = new ArrayList<>();
+
 
 
     @Override
@@ -79,7 +76,8 @@ public class ChatroomActivity extends AppCompatActivity implements
         getChatroomUsers();
     }
 
-    private void getUserLocation(User user){
+    private void getUserLocation(int pos) {
+        User user = mChatroom.getUsers().get(pos).getUser();
         DocumentReference locationsRef = mDb
                 .collection(getString(R.string.collection_user_locations))
                 .document(user.getUser_id());
@@ -91,7 +89,7 @@ public class ChatroomActivity extends AppCompatActivity implements
                 if(task.isSuccessful()){
                     if(task.getResult().toObject(UserLocation.class) != null){
 
-                        mUserLocations.add(task.getResult().toObject(UserLocation.class));
+                        mChatroom.getUsers().get(pos).setUserLocation(task.getResult().toObject(UserLocation.class));
                     }
                 }
             }
@@ -165,8 +163,10 @@ public class ChatroomActivity extends AppCompatActivity implements
                         }
                     }
                 });*/
-        for (UserSetting userSetting : mChatroom.getUsers()) {
-            getUserLocation(userSetting.getUser());
+        for (int i = 0; i < mChatroom.getUsers().size(); i++) {
+
+            getUserLocation(i);
+
         }
     }
 
@@ -243,7 +243,7 @@ public class ChatroomActivity extends AppCompatActivity implements
         UserListFragment fragment = UserListFragment.newInstance();
         Bundle bundle = new Bundle();
         bundle.putParcelableArrayList(getString(R.string.intent_user_list), mChatroom.getUsers());
-        bundle.putParcelableArrayList(getString(R.string.intent_user_locations), mUserLocations);
+
         fragment.setArguments(bundle);
 
         FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
@@ -265,17 +265,47 @@ public class ChatroomActivity extends AppCompatActivity implements
         }
     }
 
-    private void leaveChatroom(){
-
-        DocumentReference joinChatroomRef = mDb
+    private DocumentReference getCurrentUserSetting() {
+        return mDb
                 .collection(getString(R.string.collection_chatrooms))
                 .document(mChatroom.getChatroom_id())
                 .collection(getString(R.string.collection_chatroom_user_list))
                 .document(FirebaseAuth.getInstance().getUid());
+    }
+    private void leaveChatroom(){
 
-        joinChatroomRef.delete();
+        DocumentReference currentUserSetting = getCurrentUserSetting();
+        currentUserSetting.delete();
     }
 
+    private void toggleShareLocationInChatroom() {
+        User user = getCurrentUser();
+        Boolean nowEnabled = mChatroom.toggleUserLocation(user);
+        DocumentReference userSettingRef = getCurrentUserSetting();
+
+        userSettingRef.set(user).addOnCompleteListener(new OnCompleteListener<Void>() {
+            @Override
+            public void onComplete(@NonNull Task<Void> task) {
+                if (task.isSuccessful()) {
+                    restartListFragmentIfVisible();
+                }
+            }
+        });
+
+       /*
+       TO DO: Set appropriate message in the menu
+       MenuItem toggleLocation = findViewById(R.id.action_toggle_share_location);
+        if(nowEnabled){
+            toggleLocation.setTitle(getString(R.string.disable_location));
+        } else {
+            toggleLocation.setTitle(getString(R.string.enable_location));
+        }*/
+
+    }
+
+    private User getCurrentUser() {
+        return ((UserClient) (getApplicationContext())).getUser();
+    }
     private void joinChatroom(){
 
         DocumentReference joinChatroomRef = mDb
@@ -284,7 +314,7 @@ public class ChatroomActivity extends AppCompatActivity implements
                 .collection(getString(R.string.collection_chatroom_user_list))
                 .document(FirebaseAuth.getInstance().getUid());
 
-        User user = ((UserClient)(getApplicationContext())).getUser();
+        User user = getCurrentUser();
         mChatroom.addUser(user);
         joinChatroomRef.set(user); // Don't care about listening for completion.
     }
@@ -323,18 +353,28 @@ public class ChatroomActivity extends AppCompatActivity implements
         return super.onCreateOptionsMenu(menu);
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.N)
+    Boolean isUserListFragmentVisible() {
+        UserListFragment fragment =
+                (UserListFragment) getSupportFragmentManager().findFragmentByTag(getString(R.string.fragment_user_list));
+        return fragment != null && fragment.isVisible();
+    }
+
+    public void restartListFragmentIfVisible() {
+        if (isUserListFragmentVisible()) {
+            UserListFragment fragment = (UserListFragment) getSupportFragmentManager().findFragmentByTag(getString(R.string.fragment_user_list));
+            getSupportFragmentManager().beginTransaction().detach(fragment)
+                    .attach(fragment)
+                    .commit();
+        }
+    }
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch(item.getItemId()){
             case android.R.id.home:{
-                UserListFragment fragment =
-                        (UserListFragment) getSupportFragmentManager().findFragmentByTag(getString(R.string.fragment_user_list));
-                if(fragment != null){
-                    if(fragment.isVisible()){
+                if (isUserListFragmentVisible()) {
                         getSupportFragmentManager().popBackStack();
                         return true;
-                    }
                 }
                 finish();
                 return true;
@@ -345,6 +385,10 @@ public class ChatroomActivity extends AppCompatActivity implements
             }
             case R.id.action_chatroom_leave:{
                 leaveChatroom();
+                return true;
+            }
+            case R.id.action_toggle_share_location: {
+                toggleShareLocationInChatroom();
                 return true;
             }
             default:{

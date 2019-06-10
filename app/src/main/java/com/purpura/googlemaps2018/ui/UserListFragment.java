@@ -81,7 +81,6 @@ public class UserListFragment extends Fragment implements
 
     //vars
     private ArrayList<UserSetting> mUserList = new ArrayList<>();
-    private ArrayList<UserLocation> mUserLocations = new ArrayList<>();
     private UserRecyclerAdapter mUserRecyclerAdapter;
     private GoogleMap mGoogleMap;
     private UserLocation mUserPosition;
@@ -103,13 +102,9 @@ public class UserListFragment extends Fragment implements
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (mUserLocations.size() == 0) { // make sure the list doesn't duplicate by navigating back
+        if (mUserList.size() == 0) { // make sure the list doesn't duplicate by navigating back
             if (getArguments() != null) {
-                final ArrayList<UserSetting> users = getArguments().getParcelableArrayList(getString(R.string.intent_user_list));
-                mUserList.addAll(users);
-
-                final ArrayList<UserLocation> locations = getArguments().getParcelableArrayList(getString(R.string.intent_user_locations));
-                mUserLocations.addAll(locations);
+                mUserList.addAll(getArguments().getParcelableArrayList(getString(R.string.intent_user_list)));
             }
         }
     }
@@ -236,42 +231,45 @@ public class UserListFragment extends Fragment implements
                 mClusterManager.setRenderer(mClusterManagerRenderer);
             }
             mGoogleMap.setOnInfoWindowClickListener(this);
+            UserLocation userLocation = null;
+            int countEnabled = 0;
+            for (UserSetting userSetting : mUserList) {
+                if (userSetting.getEnableSharingLocation()) {
+                    countEnabled++;
+                    userLocation = userSetting.getUserLocation();
+                    Log.d(TAG, "addMapMarkers: location: " + userLocation.getGeo_point().toString());
+                    try {
+                        String snippet = "";
+                        if (userLocation.getUser().getUser_id().equals(FirebaseAuth.getInstance().getUid())) {
+                            snippet = "This is you";
+                        } else {
+                            snippet = "Determine route to " + userLocation.getUser().getUsername() + "?";
+                        }
 
-            for(UserLocation userLocation: mUserLocations){
+                        int avatar = R.drawable.cartman_cop; // set the default avatar
+                        try {
+                            avatar = Integer.parseInt(userLocation.getUser().getAvatar());
+                        } catch (NumberFormatException e) {
+                            Log.d(TAG, "addMapMarkers: no avatar for " + userLocation.getUser().getUsername() + ", setting default.");
+                        }
+                        ClusterMarker newClusterMarker = new ClusterMarker(
+                                new LatLng(userLocation.getGeo_point().getLatitude(), userLocation.getGeo_point().getLongitude()),
+                                userLocation.getUser().getUsername(),
+                                snippet,
+                                avatar,
+                                userLocation.getUser()
+                        );
+                        mClusterManager.addItem(newClusterMarker);
+                        mClusterMarkers.add(newClusterMarker);
 
-                Log.d(TAG, "addMapMarkers: location: " + userLocation.getGeo_point().toString());
-                try{
-                    String snippet = "";
-                    if(userLocation.getUser().getUser_id().equals(FirebaseAuth.getInstance().getUid())){
-                        snippet = "This is you";
+                    } catch (NullPointerException e) {
+                        Log.e(TAG, "addMapMarkers: NullPointerException: " + e.getMessage());
                     }
-                    else{
-                        snippet = "Determine route to " + userLocation.getUser().getUsername() + "?";
-                    }
 
-                    int avatar = R.drawable.cartman_cop; // set the default avatar
-                    try{
-                        avatar = Integer.parseInt(userLocation.getUser().getAvatar());
-                    }catch (NumberFormatException e){
-                        Log.d(TAG, "addMapMarkers: no avatar for " + userLocation.getUser().getUsername() + ", setting default.");
-                    }
-                    ClusterMarker newClusterMarker = new ClusterMarker(
-                            new LatLng(userLocation.getGeo_point().getLatitude(), userLocation.getGeo_point().getLongitude()),
-                            userLocation.getUser().getUsername(),
-                            snippet,
-                            avatar,
-                            userLocation.getUser()
-                    );
-                    mClusterManager.addItem(newClusterMarker);
-                    mClusterMarkers.add(newClusterMarker);
-
-                }catch (NullPointerException e){
-                    Log.e(TAG, "addMapMarkers: NullPointerException: " + e.getMessage() );
                 }
-
             }
             mClusterManager.cluster();
-
+            if (countEnabled > 0)
             setCameraView();
         }
     }
@@ -297,9 +295,9 @@ public class UserListFragment extends Fragment implements
     }
 
     private void setUserPosition() {
-        for (UserLocation userLocation : mUserLocations) {
-            if (userLocation.getUser().getUser_id().equals(FirebaseAuth.getInstance().getUid())) {
-                mUserPosition = userLocation;
+        for (UserSetting userSetting : mUserList) {
+            if (userSetting.getUser().getUser_id().equals(FirebaseAuth.getInstance().getUid())) {
+                mUserPosition = userSetting.getUserLocation();
             }
         }
     }

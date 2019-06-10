@@ -394,7 +394,6 @@ public class MainActivity extends AppCompatActivity implements
                 hideDialog();
 
                 if(task.isSuccessful()){
-
                     navChatroomActivity(chatroom);
                 }else{
                     View parentLayout = findViewById(android.R.id.content);

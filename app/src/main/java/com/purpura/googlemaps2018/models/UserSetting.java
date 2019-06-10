@@ -6,15 +6,18 @@ import android.os.Parcelable;
 public class UserSetting implements Parcelable {
     private User user;
     private Boolean enableSharingLocation;
+    private UserLocation userLocation;
 
     public UserSetting() {
         user = new User();
         enableSharingLocation = false;
+        userLocation = new UserLocation();
     }
 
     public UserSetting(Parcel in) {
         user = (User) in.readValue(User.class.getClassLoader());
         enableSharingLocation = (Boolean) in.readValue(Boolean.class.getClassLoader());
+        userLocation = (UserLocation) in.readValue(UserLocation.class.getClassLoader());
     }
 
 
@@ -48,6 +51,7 @@ public class UserSetting implements Parcelable {
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeValue(user);
         dest.writeValue(enableSharingLocation);
+        dest.writeValue(userLocation);
     }
     public static final Creator<UserSetting> CREATOR = new Creator<UserSetting>() {
         @Override
@@ -61,5 +65,11 @@ public class UserSetting implements Parcelable {
         }
     };
 
+    public UserLocation getUserLocation() {
+        return userLocation;
+    }
 
+    public void setUserLocation(UserLocation userLocation) {
+        this.userLocation = userLocation;
+    }
 }

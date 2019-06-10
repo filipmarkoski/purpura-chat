@@ -9,10 +9,10 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import com.google.firebase.auth.FirebaseAuth;
 import com.purpura.googlemaps2018.R;
 import com.purpura.googlemaps2018.models.ChatMessage;
 import com.purpura.googlemaps2018.models.User;
-import com.google.firebase.auth.FirebaseAuth;
 
 import java.util.ArrayList;
 
@@ -33,7 +33,7 @@ public class ChatMessageRecyclerAdapter extends RecyclerView.Adapter<ChatMessage
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.layout_chat_message_list_item, parent, false);
+        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.layout_chat_message_list_item_other, parent, false);
         final ViewHolder holder = new ViewHolder(view);
         return holder;
     }
