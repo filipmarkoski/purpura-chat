@@ -47,7 +47,7 @@ public class RegisterActivity extends AppCompatActivity implements
         mEmail = (EditText) findViewById(R.id.input_email);
         mPassword = (EditText) findViewById(R.id.input_password);
         mConfirmPassword = (EditText) findViewById(R.id.input_confirm_password);
-        mAddress = (EditText) findViewById(R.id.input_address);
+
 
         mProgressBar = (ProgressBar) findViewById(R.id.progressBar);
 
@@ -82,7 +82,7 @@ public class RegisterActivity extends AppCompatActivity implements
                             user.setEmail(email);
                             user.setUsername(email.substring(0, email.indexOf("@")));
                             user.setUser_id(FirebaseAuth.getInstance().getUid());
-                            user.setAddress("XXXXX");
+
                             FirebaseFirestoreSettings settings = new FirebaseFirestoreSettings.Builder()
                                     .setTimestampsInSnapshotsEnabled(true)
                                     .build();
