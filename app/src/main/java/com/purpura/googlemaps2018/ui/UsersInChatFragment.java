@@ -60,7 +60,7 @@ import java.util.List;
 
 import static com.purpura.googlemaps2018.Constants.MAPVIEW_BUNDLE_KEY;
 
-public class UserListFragment extends Fragment implements
+public class UsersInChatFragment extends Fragment implements
         OnMapReadyCallback,
         View.OnClickListener,
         GoogleMap.OnInfoWindowClickListener,
@@ -68,7 +68,7 @@ public class UserListFragment extends Fragment implements
         UserRecyclerAdapter.UserListRecyclerClickListener
 {
 
-    private static final String TAG = "UserListFragment";
+    private static final String TAG = "UsersInChatFragment";
     private static final int MAP_LAYOUT_STATE_CONTRACTED = 0;
     private static final int MAP_LAYOUT_STATE_EXPANDED = 1;
 
@@ -95,8 +95,8 @@ public class UserListFragment extends Fragment implements
     private ArrayList<Marker> mTripMarkers = new ArrayList<>();
 
 
-    public static UserListFragment newInstance() {
-        return new UserListFragment();
+    public static UsersInChatFragment newInstance() {
+        return new UsersInChatFragment();
     }
 
     @Override
@@ -109,11 +109,12 @@ public class UserListFragment extends Fragment implements
         }
     }
 
+
     @RequiresApi(api = Build.VERSION_CODES.N)
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_user_list, container, false);
+        View view = inflater.inflate(R.layout.fragment_users_in_chat_list, container, false);
         mUserListRecyclerView = view.findViewById(R.id.user_list_recycler_view);
         mMapView = view.findViewById(R.id.user_list_map);
         view.findViewById(R.id.btn_full_screen_map).setOnClickListener(this);
@@ -122,7 +123,6 @@ public class UserListFragment extends Fragment implements
 
         initUserListRecyclerView();
         initGoogleMap(savedInstanceState);
-
         setUserPosition();
 
         return view;

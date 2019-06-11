@@ -17,6 +17,9 @@
         android:id="@+id/action_toggle_share_location"
         android:title="@string/toggle_location"
         app:showAsAction="never" />
-
+    <item
+        android:id="@+id/action_add_user_to_chatroom"
+        android:title="@string/add_user_to_chatroom"
+        app:showAsAction="never" />
 
 </menu>

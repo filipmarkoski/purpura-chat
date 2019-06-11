@@ -28,7 +28,7 @@
     <string name="collection_users">Users</string>
     <string name="collection_chatrooms">Chatrooms</string>
     <string name="collection_chat_messages">Chat Messages</string>
-    <string name="collection_chatroom_user_list">User List</string>
+    <string name="collection_chatroom_user_list">Users</string>
     <string name="collection_user_locations">User Locations</string>
 
     <!-- Intent extras -->
@@ -53,6 +53,9 @@
     <string name="toggle_location">Toggle location sharing</string>
     <string name="enable_location">Share your location</string>
     <string name="disable_location">Stop sharing your location</string>
+    <string name="add_user_to_chatroom">Add user</string>
+    <string name="intent_user_to_add">user_to_add_in_chatroom</string>
+    <string name="fragment_add_user_to_chatroom">Add_user_to_chatroom</string>
 
 
 </resources>
