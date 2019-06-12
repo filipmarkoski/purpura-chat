@@ -35,7 +35,7 @@
             android:src="@drawable/ic_check_green_24dp"
             android:id="@+id/checkmark"/>
 
-        <EditText
+        <android.support.text.emoji.widget.EmojiAppCompatEditText
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:id="@+id/input_message"
@@ -49,6 +49,7 @@
 
 
     </RelativeLayout>
+
 
     <FrameLayout
         android:layout_width="match_parent"
