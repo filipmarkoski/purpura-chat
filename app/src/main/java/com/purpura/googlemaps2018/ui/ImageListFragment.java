@@ -25,7 +25,7 @@ import java.util.ArrayList;
 public class ImageListFragment extends Fragment implements ImageListRecyclerAdapter.ImageListRecyclerClickListener{
 
     private static final String TAG = "ImageListFragment";
-    private static final int NUM_COLUMNS = 2;
+    private static final int NUM_COLUMNS = 3;
 
     //widgets
     private RecyclerView mRecyclerView;
@@ -57,14 +57,20 @@ public class ImageListFragment extends Fragment implements ImageListRecyclerAdap
     }
 
     private void getImageResouces(){
-        mImageResources.add(R.drawable.cwm_logo);
-        mImageResources.add(R.drawable.cartman_cop);
-        mImageResources.add(R.drawable.eric_cartman);
-        mImageResources.add(R.drawable.ike);
-        mImageResources.add(R.drawable.kyle);
-        mImageResources.add(R.drawable.satan);
-        mImageResources.add(R.drawable.chef);
-        mImageResources.add(R.drawable.tweek);
+
+        mImageResources.add(R.drawable.arrow);
+        mImageResources.add(R.drawable.batman);
+        mImageResources.add(R.drawable.blackwidow);
+        mImageResources.add(R.drawable.canary);
+        mImageResources.add(R.drawable.diana);
+        mImageResources.add(R.drawable.flash);
+        mImageResources.add(R.drawable.harley);
+        mImageResources.add(R.drawable.loki);
+        mImageResources.add(R.drawable.scarlet);
+        mImageResources.add(R.drawable.stark);
+        mImageResources.add(R.drawable.superman);
+        mImageResources.add(R.drawable.thor);
+
     }
 
     private void initRecyclerview(){
