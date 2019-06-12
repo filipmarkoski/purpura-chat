@@ -135,4 +135,9 @@ public class Chatroom implements Parcelable {
     }
 
 
+    public void removeUser(User user) {
+        UserSetting userSetting = getSettingForEmail(user.getEmail());
+        if (userSetting != null)
+            users.remove(userSetting);
+    }
 }

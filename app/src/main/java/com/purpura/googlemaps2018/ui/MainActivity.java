@@ -297,12 +297,13 @@ public class MainActivity extends AppCompatActivity implements
         switch (requestCode) {
             case PERMISSIONS_REQUEST_ENABLE_GPS: {
                 if(mLocationPermissionGranted){
-                    getChatrooms();
+
                     getUserDetails();
                 }
                 else{
                     getLocationPermission();
                 }
+                getChatrooms();
             }
         }
 
@@ -341,6 +342,7 @@ public class MainActivity extends AppCompatActivity implements
         CollectionReference chatroomsCollection = mDb
                 .collection(getString(R.string.collection_chatrooms));
 
+
         mChatroomEventListener = chatroomsCollection.addSnapshotListener(new EventListener<QuerySnapshot>() {
             @Override
             public void onEvent(@Nullable QuerySnapshot queryDocumentSnapshots, @Nullable FirebaseFirestoreException e) {
@@ -350,6 +352,8 @@ public class MainActivity extends AppCompatActivity implements
                     Log.e(TAG, "onEvent: Listen failed.", e);
                     return;
                 }
+                mChatrooms.clear();
+                mChatroomIds.clear();
 
                 if(queryDocumentSnapshots != null){
                     for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
@@ -496,13 +500,14 @@ public class MainActivity extends AppCompatActivity implements
         super.onResume();
         if(checkMapServices()){
             if(mLocationPermissionGranted){
-                getChatrooms();
+
                 getUserDetails();
             }
             else{
                 getLocationPermission();
             }
         }
+        getChatrooms();
     }
 
     @Override

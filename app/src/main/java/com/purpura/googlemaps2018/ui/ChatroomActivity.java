@@ -257,8 +257,14 @@ public class ChatroomActivity extends AppCompatActivity implements
 
     private void leaveChatroom() {
 
-        DocumentReference currentUserSetting = getCurrentUserSetting();
-        currentUserSetting.delete();
+
+        User user = getCurrentUser();
+        mChatroom.removeUser(user);
+
+        finish();
+
+
+
     }
 
     private void toggleShareLocationInChatroom() {
