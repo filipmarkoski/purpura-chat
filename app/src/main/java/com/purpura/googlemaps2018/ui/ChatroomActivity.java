@@ -281,7 +281,6 @@ public class ChatroomActivity extends AppCompatActivity implements
 
         User user = getCurrentUser();
         mChatroom.removeUser(user);
-
         finish();
 
 
@@ -350,8 +349,11 @@ public class ChatroomActivity extends AppCompatActivity implements
         DocumentReference joinChatroomRef = mDb
                 .collection(getString(R.string.collection_chatrooms))
                 .document(mChatroom.getChatroom_id());
-
-        joinChatroomRef.set(mChatroom);
+        if (mChatroom.getUsers().isEmpty() && mChatroom.getPrivate()) {
+            joinChatroomRef.delete();
+        } else {
+            joinChatroomRef.set(mChatroom);
+        }
         if (mChatMessageEventListener != null) {
             mChatMessageEventListener.remove();
         }
