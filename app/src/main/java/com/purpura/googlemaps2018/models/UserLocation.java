@@ -4,7 +4,6 @@ import android.os.Parcel;
 import android.os.Parcelable;
 
 import com.google.firebase.firestore.GeoPoint;
-import com.google.firebase.firestore.ServerTimestamp;
 
 import java.util.Date;
 
@@ -12,7 +11,7 @@ public class UserLocation implements Parcelable{
 
     private User user;
     private GeoPoint geo_point;
-    private @ServerTimestamp Date timestamp;
+    private Date timestamp;
 
     public UserLocation(User user, GeoPoint geo_point, Date timestamp) {
         this.user = user;
