@@ -5,7 +5,7 @@ import android.os.Parcelable;
 
 import java.util.Objects;
 
-public class User implements Parcelable{
+public class User implements Parcelable {
 
     private String email;
     private String user_id;

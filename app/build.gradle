@@ -48,7 +48,7 @@ dependencies {
     implementation 'com.google.firebase:firebase-firestore:19.0.2'
 
     // Google Play Services
-
+    implementation 'com.google.android.gms:play-services-auth:16.0.1'
     //Google Play Services for Maps
     implementation 'com.google.android.gms:play-services-maps:16.1.0'
 

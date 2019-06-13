@@ -314,8 +314,15 @@ public class ChatroomActivity extends AppCompatActivity implements
 
     private User getCurrentUser() {
         return ((UserClient) (getApplicationContext())).getUser();
+        // return FirebaseAuth.getInstance().getCurrentUser();
     }
 
+    private User getUserFromDb() {
+      /*  DocumentReference userRef = mDb
+                .collection(getString(R.string.collection_users))
+                .document(FirebaseAuth.getInstance().getUid()).get().addOnCompleteListener(new Onzz)*/
+        return null;
+    }
     private void joinChatroom() {
 
         DocumentReference joinChatroomRef = mDb

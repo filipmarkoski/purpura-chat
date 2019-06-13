@@ -246,7 +246,7 @@ public class UsersInChatFragment extends Fragment implements
                             snippet = "Determine route to " + userLocation.getUser().getUsername() + "?";
                         }
 
-                        int avatar = R.drawable.cartman_cop; // set the default avatar
+                        int avatar = R.drawable.batman; // set the default avatar
                         try {
                             avatar = Integer.parseInt(userLocation.getUser().getAvatar());
                         } catch (NumberFormatException e) {
