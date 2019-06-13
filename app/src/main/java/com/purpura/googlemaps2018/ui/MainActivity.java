@@ -64,7 +64,12 @@ import javax.annotation.Nullable;
 
 import static com.purpura.googlemaps2018.Constants.ERROR_DIALOG_REQUEST;
 import static com.purpura.googlemaps2018.Constants.PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION;
+import static com.purpura.googlemaps2018.Constants.PERMISSIONS_REQUEST_CAMERA;
 import static com.purpura.googlemaps2018.Constants.PERMISSIONS_REQUEST_ENABLE_GPS;
+import static com.purpura.googlemaps2018.Constants.PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE;
+
+// Image-related permissions
+
 
 
 public class MainActivity extends AppCompatActivity implements
@@ -279,14 +284,15 @@ public class MainActivity extends AppCompatActivity implements
                                            @NonNull String permissions[],
                                            @NonNull int[] grantResults) {
         mLocationPermissionGranted = false;
+
         switch (requestCode) {
-            case PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION: {
+            case PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION:
                 // If request is cancelled, the result arrays are empty.
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     mLocationPermissionGranted = true;
                 }
-            }
+                break;
         }
     }
 

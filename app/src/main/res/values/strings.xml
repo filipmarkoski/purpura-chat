@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">GoogleMaps2018</string>
+    <string name="app_name">Purpura Chat</string>
 
     <!--<string name="google_maps_api_key">AIzaSyA4z1nMNMtAwP47zWC0Xd7_gt67A3EPCMI</string>-->
 
@@ -56,6 +56,7 @@
     <string name="add_user_to_chatroom">Add user</string>
     <string name="intent_user_to_add">user_to_add_in_chatroom</string>
     <string name="fragment_add_user_to_chatroom">Add_user_to_chatroom</string>
+    <string name="enter_message_hint">Enter message...</string>
 
 
 </resources>

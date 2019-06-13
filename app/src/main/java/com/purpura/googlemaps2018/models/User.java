@@ -5,26 +5,12 @@ import android.os.Parcelable;
 
 import java.util.Objects;
 
-public class User implements Parcelable{
+public class User implements Parcelable {
 
     private String email;
     private String user_id;
     private String username;
     private String avatar;
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof User)) return false;
-        User user = (User) o;
-        return Objects.equals(getEmail(), user.getEmail()) &&
-                Objects.equals(getUser_id(), user.getUser_id());
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(getEmail(), getUser_id());
-    }
 
     public User(String email, String user_id, String username, String avatar) {
         this.email = email;
@@ -43,6 +29,21 @@ public class User implements Parcelable{
         username = in.readString();
         avatar = in.readString();
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof User)) return false;
+        User user = (User) o;
+        return Objects.equals(getEmail(), user.getEmail()) &&
+                Objects.equals(getUser_id(), user.getUser_id());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getEmail(), getUser_id());
+    }
+
 
     public static final Creator<User> CREATOR = new Creator<User>() {
         @Override

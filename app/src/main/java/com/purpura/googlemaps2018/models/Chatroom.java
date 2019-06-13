@@ -12,6 +12,7 @@ public class Chatroom implements Parcelable {
     private String chatroom_id;
     private Boolean isPrivate;
     private ArrayList<UserSetting> users;
+
     public Chatroom(String title, String chatroom_id, Boolean isPrivate) {
         this.title = title;
         this.chatroom_id = chatroom_id;
@@ -25,6 +26,7 @@ public class Chatroom implements Parcelable {
 
     }
 
+    @SuppressWarnings("unchecked")
     protected Chatroom(Parcel in) {
         title = in.readString();
         chatroom_id = in.readString();
@@ -92,7 +94,7 @@ public class Chatroom implements Parcelable {
 
 
     public Boolean canAccess(final String userEmail) {
-        return !isPrivate || getSettingForEmail(userEmail)!=null;
+        return !isPrivate || getSettingForEmail(userEmail) != null;
     }
 
     public ArrayList<UserSetting> getUsers() {
@@ -100,14 +102,14 @@ public class Chatroom implements Parcelable {
     }
 
 
-    public void addUser (User user) {
+    public void addUser(User user) {
         if (getSettingForEmail(user.getEmail()) == null)
             users.add(new UserSetting(user, false));
 
     }
 
 
-    public UserSetting getSettingForEmail (String email){
+    public UserSetting getSettingForEmail(String email) {
         for (UserSetting userSetting : users) {
             if (userSetting.getUser().getEmail().equals(email)) {
                 return userSetting;
@@ -129,11 +131,9 @@ public class Chatroom implements Parcelable {
         isPrivate = aPrivate;
     }
 
-    public void resetUsers () {
-        //users.clear();
+    public void resetUsers() {
         users = new ArrayList<>();
     }
-
 
     public void removeUser(User user) {
         UserSetting userSetting = getSettingForEmail(user.getEmail());
