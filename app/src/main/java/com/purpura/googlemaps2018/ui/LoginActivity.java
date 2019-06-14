@@ -101,85 +101,89 @@ public class LoginActivity extends AppCompatActivity implements
             @Override
             public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
                 FirebaseUser firebaseUser = firebaseAuth.getCurrentUser();
-                if (firebaseUser != null) {
-                    Log.d(TAG, "onAuthStateChanged:signed_in:" + firebaseUser.getUid());
-                    Toast.makeText(LoginActivity.this, "Authenticated with: " + firebaseUser.getEmail(), Toast.LENGTH_SHORT).show();
-
-                    FirebaseFirestore db = FirebaseFirestore.getInstance();
-                    FirebaseFirestoreSettings settings = new FirebaseFirestoreSettings.Builder()
-                            .setTimestampsInSnapshotsEnabled(true)
-                            .build();
-                    db.setFirestoreSettings(settings);
-
-                    DocumentReference userRef = db.collection(getString(R.string.collection_users))
-                            .document(firebaseUser.getUid());
-
-                    userRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
-                        @Override
-                        public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-                            if(task.isSuccessful()){
-                                Log.d(TAG, "onComplete: successfully set the user client.");
-                                User user = task.getResult().toObject(User.class);
-                                if (user != null)
-                                    ((UserClient)(getApplicationContext())).setUser(user);
-                                else {
-                                    user = new User();
-                                    String email = firebaseUser.getEmail();
-                                    user.setEmail(email);
-                                    user.setUsername(email.substring(0, email.indexOf("@")));
-                                    user.setUser_id(FirebaseAuth.getInstance().getUid());
-                                    ((UserClient) (getApplicationContext())).setUser(user);
-
-                                    DocumentReference newUserRef = FirebaseFirestore.getInstance()
-                                            .collection(getString(R.string.collection_users))
-                                            .document(FirebaseAuth.getInstance().getUid());
-
-                                    newUserRef.set(user).addOnCompleteListener(new OnCompleteListener<Void>() {
-                                        @Override
-                                        public void onComplete(@NonNull Task<Void> task) {
-                                            hideDialog();
-
-                                            if (task.isSuccessful()) {
-                                                // redirectLoginScreen();
-
-                                            } else {
-                                                View parentLayout = findViewById(android.R.id.content);
-                                                Snackbar.make(parentLayout, "Something went wrong.", Snackbar.LENGTH_SHORT).show();
-                                            }
-                                        }
-                                    });
-                                }
-                            } else {
-                                System.out.println("YYY");
-                            }
-                        }
-                    }).addOnFailureListener(new OnFailureListener() {
-                        @Override
-                        public void onFailure(@NonNull Exception e) {
-                            System.out.println("XXX");
-                        }
-                    });
-
-                    Intent intent = new Intent(LoginActivity.this, MainActivity.class);
-                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                    startActivity(intent);
-                    finish();
-
-                } else {
-                    // User is signed out
-                    Log.d(TAG, "onAuthStateChanged:signed_out");
-                }
-                // ...
+                saveUser(firebaseUser);
             }
         };
     }
 
+
+    public void saveUser(FirebaseUser firebaseUser) {
+
+        if (firebaseUser != null) {
+            Log.d(TAG, "onAuthStateChanged:signed_in:" + firebaseUser.getUid());
+            Toast.makeText(LoginActivity.this, "Authenticated with: " + firebaseUser.getEmail(), Toast.LENGTH_SHORT).show();
+
+            FirebaseFirestore db = FirebaseFirestore.getInstance();
+            FirebaseFirestoreSettings settings = new FirebaseFirestoreSettings.Builder()
+                    .setTimestampsInSnapshotsEnabled(true)
+                    .build();
+            db.setFirestoreSettings(settings);
+
+            DocumentReference userRef = db.collection(getString(R.string.collection_users))
+                    .document(firebaseUser.getUid());
+
+            userRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+                @Override
+                public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                    if (task.isSuccessful()) {
+                        Log.d(TAG, "onComplete: successfully set the user client.");
+                        User user = task.getResult().toObject(User.class);
+                        if (user != null)
+                            ((UserClient) (getApplicationContext())).setUser(user);
+                        else {
+                            user = new User();
+                            String email = firebaseUser.getEmail();
+                            user.setEmail(email);
+                            user.setUsername(email.substring(0, email.indexOf("@")));
+                            user.setUser_id(FirebaseAuth.getInstance().getUid());
+                            ((UserClient) (getApplicationContext())).setUser(user);
+
+                            DocumentReference newUserRef = FirebaseFirestore.getInstance()
+                                    .collection(getString(R.string.collection_users))
+                                    .document(FirebaseAuth.getInstance().getUid());
+
+                            newUserRef.set(user).addOnCompleteListener(new OnCompleteListener<Void>() {
+                                @Override
+                                public void onComplete(@NonNull Task<Void> task) {
+                                    hideDialog();
+
+                                    if (task.isSuccessful()) {
+                                        // redirectLoginScreen();
+
+                                    } else {
+                                        View parentLayout = findViewById(android.R.id.content);
+                                        Snackbar.make(parentLayout, "Something went wrong.", Snackbar.LENGTH_SHORT).show();
+                                    }
+                                }
+                            });
+                        }
+                    } else {
+                        System.out.println("YYY");
+                    }
+                }
+            }).addOnFailureListener(new OnFailureListener() {
+                @Override
+                public void onFailure(@NonNull Exception e) {
+                    System.out.println("XXX");
+                }
+            });
+
+            Intent intent = new Intent(LoginActivity.this, MainActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+            finish();
+
+        } else {
+            // User is signed out
+            Log.d(TAG, "onAuthStateChanged:signed_out");
+        }
+    }
     @Override
     public void onStart() {
         super.onStart();
         findViewById(R.id.google_sign_in_button).setOnClickListener(this);
         FirebaseUser currentUser = mAuth.getCurrentUser();
-        updateUI(currentUser);
+
         FirebaseAuth.getInstance().addAuthStateListener(mAuthListener);
     }
 
@@ -276,24 +280,17 @@ public class LoginActivity extends AppCompatActivity implements
                         if (task.isSuccessful()) {
                             Log.d(TAG, "signInWithCredential:success");
                             FirebaseUser user = mAuth.getCurrentUser();
-                            updateUI(user);
+                            saveUser(user);
                         } else {
                             Log.w(TAG, "signInWithCredential:failure", task.getException());
                             Toast.makeText(LoginActivity.this, "Authentication Failed", Toast.LENGTH_SHORT).show();
-                            updateUI(null);
+
                         }
 
-                        // ...
                     }
                 });
     }
 
-    private void updateUI(FirebaseUser account) {
-        if (account != null) {
 
-        } else {
-            Log.w(TAG, "signInResult:failed");
-        }
-    }
 
 }

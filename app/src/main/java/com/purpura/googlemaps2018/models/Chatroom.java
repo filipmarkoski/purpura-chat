@@ -140,4 +140,26 @@ public class Chatroom implements Parcelable {
         if (userSetting != null)
             users.remove(userSetting);
     }
+
+    public void enableUserLocation(User user) {
+        UserSetting userSetting = getSettingForEmail(user.getEmail());
+        if (userSetting != null) {
+            userSetting.setEnableSharingLocation(true);
+        }
+    }
+
+    public void disableUserLocation(User user) {
+        UserSetting userSetting = getSettingForEmail(user.getEmail());
+        if (userSetting != null) {
+            userSetting.setEnableSharingLocation(false);
+        }
+    }
+
+    public Boolean isLocationEnabled(User user) {
+        UserSetting userSetting = getSettingForEmail(user.getEmail());
+        if (userSetting != null) {
+            return userSetting.getEnableSharingLocation();
+        }
+        return false;
+    }
 }

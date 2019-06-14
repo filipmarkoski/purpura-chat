@@ -4,7 +4,20 @@
     android:layout_height="match_parent"
     android:background="@color/White">
 
+    <ToggleButton
+        android:id="@+id/location_switch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:checked="false"
+        android:gravity="center"
+        android:text="@string/share_location"
+        android:textOff="@string/location_disabled"
+        android:textOn="@string/location_enabled" />
+    />
+
     <RelativeLayout
+
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_marginBottom="40dp"

@@ -237,8 +237,10 @@ public class UsersInChatFragment extends Fragment implements
                 if (userSetting.getEnableSharingLocation()) {
                     countEnabled++;
                     userLocation = userSetting.getUserLocation();
-                    Log.d(TAG, "addMapMarkers: location: " + userLocation.getGeo_point().toString());
+
+
                     try {
+                        Log.d(TAG, "addMapMarkers: location: " + userLocation.getGeo_point().toString());
                         String snippet = "";
                         if (userLocation.getUser().getUser_id().equals(FirebaseAuth.getInstance().getUid())) {
                             snippet = "This is you";
@@ -281,17 +283,22 @@ public class UsersInChatFragment extends Fragment implements
     private void setCameraView() {
 
         // Set a boundary to start
-        double bottomBoundary = mUserPosition.getGeo_point().getLatitude() - .1;
-        double leftBoundary = mUserPosition.getGeo_point().getLongitude() - .1;
-        double topBoundary = mUserPosition.getGeo_point().getLatitude() + .1;
-        double rightBoundary = mUserPosition.getGeo_point().getLongitude() + .1;
+        try {
+            double bottomBoundary = mUserPosition.getGeo_point().getLatitude() - .1;
+            double leftBoundary = mUserPosition.getGeo_point().getLongitude() - .1;
+            double topBoundary = mUserPosition.getGeo_point().getLatitude() + .1;
+            double rightBoundary = mUserPosition.getGeo_point().getLongitude() + .1;
 
-        mMapBoundary = new LatLngBounds(
-                new LatLng(bottomBoundary, leftBoundary),
-                new LatLng(topBoundary, rightBoundary)
-        );
-
-        mGoogleMap.moveCamera(CameraUpdateFactory.newLatLngBounds(mMapBoundary, 0));
+            mMapBoundary = new LatLngBounds(
+                    new LatLng(bottomBoundary, leftBoundary),
+                    new LatLng(topBoundary, rightBoundary)
+            );
+            int width = getResources().getDisplayMetrics().widthPixels;
+            int height = getResources().getDisplayMetrics().heightPixels;
+            int padding = (int) (width * 0.12);
+            mGoogleMap.moveCamera(CameraUpdateFactory.newLatLngBounds(mMapBoundary, width, height, padding));
+        } catch (NullPointerException ignored) {
+        }
     }
 
     private void setUserPosition() {

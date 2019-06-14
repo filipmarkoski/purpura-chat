@@ -20,6 +20,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.EditText;
+import android.widget.ToggleButton;
 
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
@@ -62,7 +63,7 @@ public class ChatroomActivity extends AppCompatActivity implements
     private FirebaseFirestore mDb;
     private ArrayList<ChatMessage> mMessages = new ArrayList<>();
     private Set<String> mMessageIds = new HashSet<>();
-
+    ToggleButton locationSwitch;
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
@@ -89,9 +90,30 @@ public class ChatroomActivity extends AppCompatActivity implements
         findViewById(R.id.checkmark).setOnClickListener(this);
 
         mDb = FirebaseFirestore.getInstance();
-
+        locationSwitch = (ToggleButton) findViewById(R.id.location_switch);
+        /*locationSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    enableShareLocationInChatRoom();
+                } else {
+                    disableShareLocationInChatRoom();
+                }
+            }
+        });*/
+        locationSwitch.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (locationSwitch.isChecked()) {
+                    enableShareLocationInChatRoom();
+                } else {
+                    disableShareLocationInChatRoom();
+                }
+            }
+        });
         getIncomingIntent();
         initChatroomRecyclerView();
+        locationSwitch.setChecked(mChatroom.isLocationEnabled(getCurrentUser()));
+
 
     }
 
@@ -287,6 +309,37 @@ public class ChatroomActivity extends AppCompatActivity implements
 
     }
 
+    private void disableShareLocationInChatRoom() {
+        User user = getCurrentUser();
+        mChatroom.disableUserLocation(user);
+        DocumentReference userSettingRef = getCurrentUserSetting();
+
+        userSettingRef.set(user).addOnCompleteListener(new OnCompleteListener<Void>() {
+            @Override
+            public void onComplete(@NonNull Task<Void> task) {
+                if (task.isSuccessful()) {
+                    restartListFragmentIfVisible();
+                }
+            }
+        });
+
+    }
+
+    private void enableShareLocationInChatRoom() {
+        User user = getCurrentUser();
+        mChatroom.enableUserLocation(user);
+        DocumentReference userSettingRef = getCurrentUserSetting();
+
+        userSettingRef.set(user).addOnCompleteListener(new OnCompleteListener<Void>() {
+            @Override
+            public void onComplete(@NonNull Task<Void> task) {
+                if (task.isSuccessful()) {
+                    restartListFragmentIfVisible();
+                }
+            }
+        });
+
+    }
     private void toggleShareLocationInChatroom() {
         User user = getCurrentUser();
         Boolean nowEnabled = mChatroom.toggleUserLocation(user);
