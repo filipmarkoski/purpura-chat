@@ -1,6 +1,7 @@
 package com.purpura.googlemaps2018.ui;
 
-import android.content.Context;
+import android.annotation.SuppressLint;
+import android.content.ClipData;
 import android.content.pm.PackageManager;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -9,15 +10,8 @@ import android.app.Activity;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
-import android.media.ImageReader;
 import android.net.Uri;
 import android.os.Bundle;
-import android.app.Activity;
-import android.content.Intent;
-import android.database.Cursor;
-import android.graphics.Bitmap;
-import android.media.ImageReader;
-import android.net.Uri;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.provider.OpenableColumns;
@@ -27,6 +21,7 @@ import android.support.annotation.RequiresApi;
 import android.support.design.widget.Snackbar;
 import android.support.text.emoji.EmojiCompat;
 import android.support.text.emoji.FontRequestEmojiCompatConfig;
+import android.support.text.emoji.widget.EmojiAppCompatEditText;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v4.content.ContextCompat;
@@ -48,7 +43,6 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
-import com.google.common.io.ByteStreams;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
@@ -73,19 +67,18 @@ import com.purpura.googlemaps2018.models.Chatroom;
 import com.purpura.googlemaps2018.models.User;
 import com.purpura.googlemaps2018.models.UserLocation;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.net.URL;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
-import static com.purpura.googlemaps2018.Constants.PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION;
 import static com.purpura.googlemaps2018.Constants.PERMISSIONS_REQUEST_CAMERA;
 import static com.purpura.googlemaps2018.Constants.PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE;
 
@@ -106,15 +99,15 @@ public class ChatroomActivity extends AppCompatActivity implements
     private FirebaseFirestore mDb;
     private FirebaseAuth mAuth;
     private StorageReference mStorageRef;
-    private StorageReference mImagesRef;
+    private StorageReference mImagesFolderRef;
 
     // Image (the same variables are used for Gallery-related and Camera-related tasks)
-    private Bitmap galleryImage = null;
-    private String galleryImageDownloadURL = null;
+    /*private Bitmap galleryImage = null;
+    private String galleryImageDownloadURL = null;*/
 
     //widgets
     private Chatroom mChatroom;
-    private EditText mMessage;
+    private EditText editTextMessage;
 
     //vars
     private ListenerRegistration mChatMessageEventListener, mUserListEventListener;
@@ -128,6 +121,7 @@ public class ChatroomActivity extends AppCompatActivity implements
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.d(TAG, "onCreate: ");
 
         FontRequest fontRequest = new FontRequest(
                 "com.google.android.gms.fonts",
@@ -143,13 +137,14 @@ public class ChatroomActivity extends AppCompatActivity implements
         EmojiCompat.init(config);
 
         setContentView(R.layout.activity_chatroom);
-        mMessage = findViewById(R.id.input_message);
+        editTextMessage = (EmojiAppCompatEditText) findViewById(R.id.input_message);
         mChatMessageRecyclerView = findViewById(R.id.chatmessage_recycler_view);
 
         View btnCheckmark = findViewById(R.id.checkmark);
         btnCheckmark.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                Log.d(TAG, "(btnCheckmark) onClick: ");
                 Toast.makeText(chatroomActivity, "Sending message...", Toast.LENGTH_SHORT).show();
                 insertNewMessage();
             }
@@ -159,12 +154,10 @@ public class ChatroomActivity extends AppCompatActivity implements
         btnGallery.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                Log.d(TAG, "(btnGallery) onClick: ");
                 Toast.makeText(chatroomActivity, "Opening gallery...", Toast.LENGTH_SHORT).show();
-                if (mWriteExternalStoragePermissionGranted) {
+                if (checkWriteExternalStoragePermissionGranted()) {
                     getGalleryImage();
-                    sendGalleryImage();
-                } else {
-                    getWriteExternalStoragePermission();
                 }
             }
         });
@@ -173,13 +166,10 @@ public class ChatroomActivity extends AppCompatActivity implements
         btnCamera.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                Log.d(TAG, "(btnCamera) onClick: ");
                 Toast.makeText(chatroomActivity, "Opening camera...", Toast.LENGTH_SHORT).show();
-                if (mWriteExternalStoragePermissionGranted && mCameraPermissionGranted) {
+                if (true || checkCameraPermissionGranted()) {
                     getCameraImage();
-                    sendGalleryImage();
-                } else {
-                    getWriteExternalStoragePermission();
-                    getCameraPermission();
                 }
             }
         });
@@ -188,16 +178,18 @@ public class ChatroomActivity extends AppCompatActivity implements
         mDb = FirebaseFirestore.getInstance();
         mAuth = FirebaseAuth.getInstance();
         mStorageRef = FirebaseStorage.getInstance().getReference();
-        mImagesRef = mStorageRef.child("images");
+        mImagesFolderRef = mStorageRef.child("images");
 
         getIncomingIntent();
         initChatroomRecyclerView();
 
     }
 
-    private void sendGalleryImage() {
+    private void storeImageDownloadUrlToCloudFirestore(String imageDownloadURL) {
+        Log.d(TAG, "storeImageDownloadUrlToCloudFirestore: ");
+
         /* Make sure you have the image */
-        if (galleryImageDownloadURL != null && galleryImage != null) {
+        if (imageDownloadURL != null) {
             // Store the imageUrl to Cloud Firestore
             CollectionReference chatroomChatMessagesRef = mDb
                     .collection(getString(R.string.collection_chatrooms))
@@ -207,42 +199,44 @@ public class ChatroomActivity extends AppCompatActivity implements
             DocumentReference chatMessageRef = chatroomChatMessagesRef.document();
 
             String chatMessageId = chatMessageRef.getId();
-            User user = ((UserClient) (getApplicationContext())).getUser();
+            User user = getCurrentUser();
 
             ChatMessage chatMessage = new ChatMessage();
             chatMessage.setMessage_id(chatMessageId);
             chatMessage.setUser(user);
-            chatMessage.setImageUrl(galleryImageDownloadURL);
+            chatMessage.setImageUrl(imageDownloadURL);
 
-            chatMessageRef.set(chatMessage).addOnCompleteListener(new OnCompleteListener<Void>() {
+            final Task<Void> storeChatMessageTask = chatMessageRef.set(chatMessage);
+
+            storeChatMessageTask.addOnSuccessListener(new OnSuccessListener<Void>() {
                 @Override
-                public void onComplete(@NonNull Task<Void> task) {
-                    if (task.isSuccessful()) { // && task.getResult() != null
-                        clearGalleryImage();
-                    } else {
-                        View parentLayout = findViewById(android.R.id.content);
-                        Snackbar.make(parentLayout, "Something went wrong.", Snackbar.LENGTH_SHORT).show();
-                    }
+                public void onSuccess(Void aVoid) {
+                    String message = "storeImageDownloadUrlToCloudFirestore: onSuccess ";
+                    Log.d(TAG, message);
+                    Toast.makeText(chatroomActivity, message, Toast.LENGTH_SHORT).show();
+                }
+            }).addOnFailureListener(new OnFailureListener() {
+                @Override
+                public void onFailure(@NonNull Exception e) {
+                    String message = "storeImageDownloadUrlToCloudFirestore: onFailure ";
+                    Log.d(TAG, message);
+                    Toast.makeText(chatroomActivity, message, Toast.LENGTH_SHORT).show();
                 }
             });
 
-
         }
-    }
-
-    private void clearGalleryImage() {
-        this.galleryImage = null;
-        this.galleryImageDownloadURL = null;
     }
 
     // SELECT_GALLERY_IMAGE_ACTION
 
     private void getGalleryImage() {
+        Log.d(TAG, "getGalleryImage: ");
         Intent galleryIntent = new Intent();
         galleryIntent.setAction(Intent.ACTION_GET_CONTENT);
         galleryIntent.setType("image/*");
 
         if (galleryIntent.resolveActivity(getPackageManager()) != null) {
+            Log.d(TAG, "getGalleryImage: intent resolved");
             Intent galleryChooser = Intent.createChooser(galleryIntent, "Select an Image");
             startActivityForResult(galleryChooser, Constants.SELECT_GALLERY_IMAGE_REQUEST);
         }
@@ -253,13 +247,14 @@ public class ChatroomActivity extends AppCompatActivity implements
 
 
     private void getCameraImage() {
-        Toast.makeText(this, "getCameraImage", Toast.LENGTH_SHORT).show();
+        Log.d(TAG, "getCameraImage: ");
 
         Intent cameraIntent = new Intent();
         cameraIntent.setAction(MediaStore.ACTION_IMAGE_CAPTURE);
 
         if (cameraIntent.resolveActivity(getPackageManager()) != null) {
-            Intent cameraChooser = Intent.createChooser(cameraIntent, "Select a Camera App");
+            Log.d(TAG, "getCameraImage: intent resolved");
+
 
             File imageFile = null;
             try {
@@ -271,40 +266,63 @@ public class ChatroomActivity extends AppCompatActivity implements
 
             // Continue only if the File was successfully created
             if (imageFile != null) {
-                Uri imageUri = FileProvider.getUriForFile(chatroomActivity, BuildConfig.APPLICATION_ID + ".fileprovider", imageFile);
-                // get read and write permissions, the | is a bitwise-OR, it's the standard way to combine the two flags
-                cameraIntent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-                cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, imageUri);
+                Log.d(TAG, "getCameraImage: file created successfully");
+                Toast.makeText(chatroomActivity, imageFile.toString(), Toast.LENGTH_SHORT).show();
 
+                /*
+                 * https://developer.android.com/reference/android/support/v4/content/FileProvider
+                 * */
+
+                if (!imageFile.exists()) {
+                    try {
+                        imageFile.createNewFile();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                Uri imageContentUriFromFile = FileProvider.getUriForFile(chatroomActivity, BuildConfig.APPLICATION_ID + ".fileprovider", imageFile);
+                Toast.makeText(chatroomActivity, imageContentUriFromFile.getPath(), Toast.LENGTH_SHORT).show();
+
+                // get read and write permissions, the | is a bitwise-OR, it's the standard way to combine the two flags
+                // cameraIntent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                cameraIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, imageContentUriFromFile);
+                cameraIntent.putExtra("return-data", true);
+
+
+                // an approach to send the content uri via an intent exists using ClipData objects
+
+                Intent cameraChooser = Intent.createChooser(cameraIntent, "Select a Camera App");
                 chatroomActivity.startActivityForResult(cameraChooser, Constants.CAPTURE_CAMERA_IMAGE_REQUEST);
             }
-
         }
     }
 
-    private File createImageFile() {
-        // android:authorities="com.purpura.googlemaps2018.fileprovider"
+    // android:authorities="com.purpura.googlemaps2018.fileprovider"
 
-        String state = Environment.getExternalStorageState();
-        File filesDir;
-        // Make sure it's available
-        if (Environment.MEDIA_MOUNTED.equals(state)) {
-            // We can read and write the media
-            filesDir = new File(Environment.getExternalStorageDirectory() + "/PurpuraChat/Media", "Images");
-        } else {
-            // Load another directory, probably local memory
-            // filesDir = new File(getFilesDir(),"Images");
-            filesDir = new File(getApplicationContext().getExternalFilesDir(null), "Images");
-        }
+    String mCurrentPhotoPath = null;
 
-        if (!filesDir.exists()) {
-            filesDir.mkdirs();
-        }
+    public File createImageFile() throws IOException {
+        // Create an image file name
+        @SuppressLint("SimpleDateFormat") String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        String imageFileName = "JPEG_" + timeStamp + "_";
+        File storageDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM);
+        //File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        File image = File.createTempFile(
+                imageFileName,
+                ".jpg",
+                storageDir
+        );
 
-        return new File(filesDir, Constants.DEFAULT_PICTURE_NAME);
+
+        // Save a file: path for use with ACTION_VIEW intents
+        mCurrentPhotoPath = image.getAbsolutePath();
+        return image;
     }
 
     private String getFilePath(Uri uri) {
+        Log.d(TAG, "getFilePath: ");
         String state = Environment.getExternalStorageState();
         File filesDir;
         if (Environment.MEDIA_MOUNTED.equals(state)) {
@@ -318,11 +336,15 @@ public class ChatroomActivity extends AppCompatActivity implements
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        Log.d(TAG, "onActivityResult: ");
+
 
         // Gallery Intent
         if (requestCode == Constants.SELECT_GALLERY_IMAGE_REQUEST &&
                 resultCode == Activity.RESULT_OK &&
                 data != null && data.getData() != null) {
+
+            Log.d(TAG, "onActivityResult: SELECT_GALLERY_IMAGE_REQUEST");
 
             Uri imageUri = data.getData();
             try {
@@ -335,12 +357,17 @@ public class ChatroomActivity extends AppCompatActivity implements
         }
         // Camera Intent
         else if (requestCode == Constants.CAPTURE_CAMERA_IMAGE_REQUEST &&
-                resultCode == Activity.RESULT_OK &&
-                data != null && data.getExtras() != null) {
+                resultCode == Activity.RESULT_OK
+            /*&& data != null && data.getExtras() != null*/) {
+
+            Log.d(TAG, "onActivityResult: CAPTURE_CAMERA_IMAGE_REQUEST");
 
             // cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoUri);
-            Bundle extras = data.getExtras();
-            Uri imageUri = (Uri) extras.get(MediaStore.EXTRA_OUTPUT);
+
+//            Bundle extras = data.getExtras();
+//            Uri imageUri = (Uri) extras.get(MediaStore.EXTRA_OUTPUT);
+            Uri imageUri = Uri.parse(mCurrentPhotoPath);
+
             try {
                 storeImageToFirebaseStorage(imageUri);
             } catch (IOException e) {
@@ -350,53 +377,79 @@ public class ChatroomActivity extends AppCompatActivity implements
     }
 
     private void storeImageToFirebaseStorage(Uri uri) throws IOException {
-        galleryImage = MediaStore.Images.Media.getBitmap(getContentResolver(), uri);
-        String message = String.format("ImageReceived=%s, %s", galleryImage != null, uri);
-        Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+        Log.d(TAG, "storeImageToFirebaseStorage: ");
+        if (uri == null) {
+            Log.e(TAG, "storeImageToFirebaseStorage: uri is null", new NullPointerException());
+            return;
+        }
+
+        Bitmap imageBitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), uri);
+        String message = String.format("ImageReceived=%s, %s", imageBitmap != null, uri);
+        Toast.makeText(chatroomActivity, message, Toast.LENGTH_SHORT).show();
 
         String fileName = getFileName(uri);
-        StorageReference imageRef = mImagesRef.child(fileName);
+        String userId = getCurrentUser().getUser_id();
+        String timestamp = Calendar.getInstance().getTime().toString().replaceAll("[\\s+:]", "_");
+        String imageName = String.format("userId_%s_timestamp_%s_fileName_%s", fileName, userId, timestamp);
+        final StorageReference imageRef = mImagesFolderRef.child(imageName);
+        final UploadTask uploadTask = imageRef.putFile(uri);
 
-        UploadTask uploadTask = imageRef.putFile(uri);
-
-        Task<Uri> urlTask = uploadTask.continueWithTask(new Continuation<UploadTask.TaskSnapshot, Task<Uri>>() {
+        uploadTask.addOnFailureListener(new OnFailureListener() {
             @Override
-            public Task<Uri> then(@NonNull Task<UploadTask.TaskSnapshot> task) throws Exception {
-                if (!task.isSuccessful() && task.getException() != null) {
-                    throw task.getException();
-                }
-
-                // Continue with the task to get the download URL
-                return imageRef.getDownloadUrl();
+            public void onFailure(@NonNull Exception e) {
+                Toast.makeText(chatroomActivity, e.toString(), Toast.LENGTH_SHORT).show();
             }
-        }).addOnCompleteListener(new OnCompleteListener<Uri>() {
+        }).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
             @Override
-            public void onComplete(@NonNull Task<Uri> task) {
-                if (task.isSuccessful() && task.getResult() != null) {
-                    Uri downloadUri = task.getResult();
-                    String downloadURL = downloadUri.toString();
-                    Toast.makeText(chatroomActivity, downloadURL, Toast.LENGTH_LONG).show();
+            public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                Toast.makeText(chatroomActivity, "Image uploaded Successfully...", Toast.LENGTH_SHORT).show();
 
-                    chatroomActivity.galleryImageDownloadURL = downloadURL;
-                    try {
-                        chatroomActivity.galleryImage = getBitmapFromUrl(downloadURL);
-                    } catch (IOException e) {
-                        Toast.makeText(chatroomActivity, "getBitmapFromUrl Failure", Toast.LENGTH_LONG).show();
-                        e.printStackTrace();
+                Task<Uri> urlTask = uploadTask.continueWithTask(new Continuation<UploadTask.TaskSnapshot, Task<Uri>>() {
+                    @Override
+                    public Task<Uri> then(@NonNull Task<UploadTask.TaskSnapshot> task) throws Exception {
+                        if (!task.isSuccessful() && task.getException() != null) {
+                            throw task.getException();
+                        }
+                        return imageRef.getDownloadUrl();
                     }
+                }).addOnCompleteListener(new OnCompleteListener<Uri>() {
+                    @Override
+                    public void onComplete(@NonNull Task<Uri> task) {
+                        if (task.isSuccessful() && task.getResult() != null) {
+                            Log.d(TAG, "storeImageToFirebaseStorage: onComplete: success");
+                            String imageDownloadUrl = task.getResult().toString();
+                            Toast.makeText(chatroomActivity, imageDownloadUrl, Toast.LENGTH_SHORT).show();
+                            chatroomActivity.storeImageDownloadUrlToCloudFirestore(imageDownloadUrl);
+                        } else {
+                            // Handle failures
+                            String message = "Firebase Storage upload task failed";
+                            Toast.makeText(chatroomActivity, message, Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
+            }
+        });
 
-
+        /*imageRef.putFile(uri).addOnCompleteListener(new OnCompleteListener<UploadTask.TaskSnapshot>() {
+            @Override
+            public void onComplete(@NonNull Task<UploadTask.TaskSnapshot> task) {
+                if (task.isSuccessful() && task.getResult() != null) {
+                    Log.d(TAG, "storeImageToFirebaseStorage: onComplete: success");
+                    String imageDownloadUrl = task.getResult().getStorage().getDownloadUrl().toString();
+                    Toast.makeText(chatroomActivity, imageDownloadUrl, Toast.LENGTH_SHORT).show();
+                    chatroomActivity.storeImageDownloadUrlToCloudFirestore(imageDownloadUrl);
                 } else {
                     // Handle failures
                     String message = "Firebase Storage upload task failed";
-                    Toast.makeText(chatroomActivity, message, Toast.LENGTH_LONG).show();
+                    Toast.makeText(chatroomActivity, message, Toast.LENGTH_SHORT).show();
                 }
             }
-        });
+        });*/
     }
 
 
     private void getUserLocation(int pos) {
+        Log.d(TAG, "getUserLocation: ");
         User user = mChatroom.getUsers().get(pos).getUser();
         DocumentReference locationsRef = mDb
                 .collection(getString(R.string.collection_user_locations))
@@ -408,7 +461,6 @@ public class ChatroomActivity extends AppCompatActivity implements
 
                 if (task.isSuccessful() && task.getResult() != null) {
                     if (task.getResult().toObject(UserLocation.class) != null) {
-
                         mChatroom.getUsers().get(pos).setUserLocation(task.getResult().toObject(UserLocation.class));
                     }
                 }
@@ -419,6 +471,8 @@ public class ChatroomActivity extends AppCompatActivity implements
 
 
     private void getChatMessages() {
+        Log.d(TAG, "getChatMessages: ");
+
         CollectionReference messagesRef = mDb
                 .collection(getString(R.string.collection_chatrooms))
                 .document(mChatroom.getChatroom_id())
@@ -454,7 +508,8 @@ public class ChatroomActivity extends AppCompatActivity implements
 
 
     private void insertNewMessage() {
-        String message = mMessage.getText().toString();
+        Log.d(TAG, "insertNewMessage: ");
+        String message = editTextMessage.getText().toString();
 
         if (message.length() > 0) {
             message = message.replaceAll(System.getProperty("line.separator"), "");
@@ -478,6 +533,7 @@ public class ChatroomActivity extends AppCompatActivity implements
                 public void onComplete(@NonNull Task<Void> task) {
                     if (task.isSuccessful()) {
                         clearMessage();
+                        getChatMessages();
                     } else {
                         View parentLayout = findViewById(android.R.id.content);
                         Snackbar.make(parentLayout, "Something went wrong.", Snackbar.LENGTH_SHORT).show();
@@ -488,11 +544,13 @@ public class ChatroomActivity extends AppCompatActivity implements
     }
 
     private void clearMessage() {
-        mMessage.setText("");
+        Log.d(TAG, "clearMessage: ");
+        editTextMessage.setText("");
     }
 
 
     private void getChatroomUsers() {
+        Log.d(TAG, "getChatroomUsers: ");
         /*
         CollectionReference usersRef = mDb
                 .collection(getString(R.string.collection_chatrooms))
@@ -530,6 +588,7 @@ public class ChatroomActivity extends AppCompatActivity implements
     }
 
     private void initChatroomRecyclerView() {
+        Log.d(TAG, "initChatroomRecyclerView: ");
         mChatMessageRecyclerAdapter = new ChatMessageRecyclerAdapter(mMessages, new ArrayList<User>(), this);
         mChatMessageRecyclerView.setAdapter(mChatMessageRecyclerAdapter);
         mChatMessageRecyclerView.setLayoutManager(new LinearLayoutManager(this));
@@ -558,11 +617,14 @@ public class ChatroomActivity extends AppCompatActivity implements
 
 
     private void hideSoftKeyboard() {
+        Log.d(TAG, "hideSoftKeyboard: ");
         this.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
     }
 
     private void getIncomingIntent() {
+        Log.d(TAG, "getIncomingIntent: ");
         if (getIntent().hasExtra(getString(R.string.intent_chatroom))) {
+            Log.d(TAG, "getIncomingIntent: hasExtra");
             mChatroom = getIntent().getParcelableExtra(getString(R.string.intent_chatroom));
             setChatroomName();
             joinChatroom();
@@ -570,6 +632,7 @@ public class ChatroomActivity extends AppCompatActivity implements
     }
 
     private DocumentReference getCurrentUserSetting() {
+        Log.d(TAG, "getCurrentUserSetting: ");
         return mDb
                 .collection(getString(R.string.collection_chatrooms))
                 .document(mChatroom.getChatroom_id())
@@ -578,12 +641,14 @@ public class ChatroomActivity extends AppCompatActivity implements
     }
 
     private void leaveChatroom() {
+        Log.d(TAG, "leaveChatroom: ");
         User user = getCurrentUser();
         mChatroom.removeUser(user);
         finish();
     }
 
     private void toggleShareLocationInChatroom() {
+        Log.d(TAG, "toggleShareLocationInChatroom: ");
         User user = getCurrentUser();
         Boolean nowEnabled = mChatroom.toggleUserLocation(user);
         DocumentReference userSettingRef = getCurrentUserSetting();
@@ -592,6 +657,7 @@ public class ChatroomActivity extends AppCompatActivity implements
             @Override
             public void onComplete(@NonNull Task<Void> task) {
                 if (task.isSuccessful()) {
+                    Toast.makeText(chatroomActivity, nowEnabled ? "Location is being shared" : "Location is not shared", Toast.LENGTH_SHORT).show();
                     restartListFragmentIfVisible();
                 }
             }
@@ -613,7 +679,7 @@ public class ChatroomActivity extends AppCompatActivity implements
     }
 
     private void joinChatroom() {
-
+        Log.d(TAG, "joinChatroom: ");
         DocumentReference joinChatroomRef = mDb
                 .collection(getString(R.string.collection_chatrooms))
                 .document(mChatroom.getChatroom_id())
@@ -627,14 +693,22 @@ public class ChatroomActivity extends AppCompatActivity implements
 
 
     private void setChatroomName() {
+        Log.d(TAG, "setChatroomName: ");
         getSupportActionBar().setTitle(mChatroom.getTitle());
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setHomeButtonEnabled(true);
     }
 
     @Override
+    protected void onStart() {
+        super.onStart();
+        Log.d(TAG, "onStart: ");
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
+        Log.d(TAG, "onResume: ");
         getChatMessages();
         getChatroomUsers();
     }
@@ -642,17 +716,28 @@ public class ChatroomActivity extends AppCompatActivity implements
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        DocumentReference joinChatroomRef = mDb
+        Log.d(TAG, "onDestroy: ");
+
+        // find the currently joined chatroom
+        DocumentReference chatroomRef = mDb
                 .collection(getString(R.string.collection_chatrooms))
                 .document(mChatroom.getChatroom_id());
+
+
         if (mChatroom.getUsers().isEmpty() && mChatroom.getPrivate()) {
-            joinChatroomRef.delete();
+            chatroomRef.delete();
         } else {
-            joinChatroomRef.set(mChatroom);
+            // You shouldn't have to store or update the chatroom.
+            // It should already be stored piece-by-piece
+            chatroomRef.set(mChatroom);
         }
+
+        // remove ChatMessage listener
         if (mChatMessageEventListener != null) {
             mChatMessageEventListener.remove();
         }
+
+        // remove User listener
         if (mUserListEventListener != null) {
             mUserListEventListener.remove();
         }
@@ -660,6 +745,7 @@ public class ChatroomActivity extends AppCompatActivity implements
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
+        Log.d(TAG, "onCreateOptionsMenu: ");
         getMenuInflater().inflate(R.menu.chatroom_menu, menu);
         return super.onCreateOptionsMenu(menu);
     }
@@ -670,12 +756,14 @@ public class ChatroomActivity extends AppCompatActivity implements
     }
 
     Boolean isUsersInChatFragmentVisible() {
+        Log.d(TAG, "isUsersInChatFragmentVisible: ");
         UsersInChatFragment fragment = getUsersInChatFragment();
         return fragment != null;// && fragment.isVisible();
 
     }
 
     public void restartListFragmentIfVisible() {
+        Log.d(TAG, "restartListFragmentIfVisible: ");
         UsersInChatFragment fragment = getUsersInChatFragment();
         if (fragment != null) {
 
@@ -689,6 +777,7 @@ public class ChatroomActivity extends AppCompatActivity implements
     }
 
     private boolean isAddUserToChatFragmentVisible() {
+        Log.d(TAG, "isAddUserToChatFragmentVisible: ");
         AddUserToChatFragment fragment =
                 (AddUserToChatFragment) getSupportFragmentManager().findFragmentByTag(getString(R.string.fragment_add_user_to_chatroom));
         return fragment != null && fragment.isVisible();
@@ -730,6 +819,7 @@ public class ChatroomActivity extends AppCompatActivity implements
     }
 
     private void inflateUsersInChatFragment() {
+        Log.d(TAG, "inflateUsersInChatFragment: ");
         hideSoftKeyboard();
 
         UsersInChatFragment fragment = UsersInChatFragment.newInstance();
@@ -746,6 +836,7 @@ public class ChatroomActivity extends AppCompatActivity implements
     }
 
     private void inflateAddUserToChatFragment() {
+        Log.d(TAG, "inflateAddUserToChatFragment: ");
         hideSoftKeyboard();
 
         AddUserToChatFragment fragment = AddUserToChatFragment.newInstance();
@@ -796,6 +887,8 @@ public class ChatroomActivity extends AppCompatActivity implements
 
     @Override
     public void addSelectedUserToChatroom(User user) {
+        Log.d(TAG, "addSelectedUserToChatroom: ");
+        ;
         DocumentReference joinChatroomRef = mDb
                 .collection(getString(R.string.collection_chatrooms))
                 .document(mChatroom.getChatroom_id());
@@ -821,62 +914,79 @@ public class ChatroomActivity extends AppCompatActivity implements
      * Permission-related Code
      */
 
-
-    private boolean mWriteExternalStoragePermissionGranted = false;
-
-    private void getWriteExternalStoragePermission() {
-        if (ContextCompat.checkSelfPermission(this.getApplicationContext(),
-                android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                == PackageManager.PERMISSION_GRANTED) {
-            mWriteExternalStoragePermissionGranted = true;
-            //
-        } else {
-            ActivityCompat.requestPermissions(this,
-                    new String[]{android.Manifest.permission.WRITE_EXTERNAL_STORAGE},
-                    PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE);
-        }
+    private boolean checkWriteExternalStoragePermissionGranted() {
+        String permission = android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
+        int permissionRequest = PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE;
+        return checkPermissionGranted(chatroomActivity, permission, permissionRequest);
     }
 
-    private boolean mCameraPermissionGranted = false;
+    private boolean checkCameraPermissionGranted() {
+        String permission = android.Manifest.permission.CAMERA;
+        int permissionRequest = PERMISSIONS_REQUEST_CAMERA;
+        return checkPermissionGranted(chatroomActivity, permission, permissionRequest);
+    }
 
-    private void getCameraPermission() {
-        if (ContextCompat.checkSelfPermission(this.getApplicationContext(),
-                android.Manifest.permission.CAMERA)
-                == PackageManager.PERMISSION_GRANTED) {
-            mCameraPermissionGranted = true;
-            //
+    private boolean checkPermissionGranted(Activity activity, String permission, int permissionRequest) {
+        if (ContextCompat.checkSelfPermission(activity, permission) == PackageManager.PERMISSION_GRANTED) {
+            String message = String.format("%s granted", permission);
+            Log.d(TAG, message);
+            Toast.makeText(activity, message, Toast.LENGTH_SHORT).show();
+            return true;
         } else {
-            ActivityCompat.requestPermissions(this,
-                    new String[]{android.Manifest.permission.CAMERA},
-                    PERMISSIONS_REQUEST_CAMERA);
+            String message = String.format("%s NOT granted", permission);
+            Log.d(TAG, message);
+
+            if (ActivityCompat.shouldShowRequestPermissionRationale(activity, permission)) {
+                String[] split = permission.split(".");
+                String permissionName = split[split.length - 1];
+
+                String snackbarText = String.format("%s permission is needed", permissionName);
+                Snackbar.make(findViewById(android.R.id.content), snackbarText, Snackbar.LENGTH_INDEFINITE)
+                        .setAction("ENABLE", new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                ActivityCompat.requestPermissions(activity,
+                                        new String[]{permission},
+                                        permissionRequest);
+                            }
+                        })
+                        .show();
+
+            } else {
+                ActivityCompat.requestPermissions(activity,
+                        new String[]{permission},
+                        permissionRequest);
+            }
+
         }
+        return false;
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode,
                                            @NonNull String permissions[],
                                            @NonNull int[] grantResults) {
-        mWriteExternalStoragePermissionGranted = false;
-        mCameraPermissionGranted = false;
+        Log.d(TAG, "onRequestPermissionsResult: ");
 
         switch (requestCode) {
+            case PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE: {
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Toast.makeText(this, "Write to external storage permission granted", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(this, "Write to external storage permission is NOT granted", Toast.LENGTH_SHORT).show();
+                }
+                return;
+            }
 
-            case PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE:
+            case PERMISSIONS_REQUEST_CAMERA: {
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    mWriteExternalStoragePermissionGranted = true;
+                    Toast.makeText(this, "Camera permission granted", Toast.LENGTH_SHORT).show();
                 } else {
-                    Toast.makeText(this, "Write to external storage permission not granted", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Camera permission is NOT granted", Toast.LENGTH_SHORT).show();
                 }
-                break;
-            case PERMISSIONS_REQUEST_CAMERA:
-                if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    mCameraPermissionGranted = true;
-                } else {
-                    Toast.makeText(this, "Camera permission not granted", Toast.LENGTH_SHORT).show();
-                }
-                break;
+            }
         }
     }
 
@@ -886,32 +996,47 @@ public class ChatroomActivity extends AppCompatActivity implements
      */
 
     public String getFileName(Uri uri) {
-        String result = null;
+        Log.d(TAG, "getFileName: ");
+        String fileName = null;
         if (uri.getScheme() != null && uri.getScheme().equals("content")) {
             Cursor cursor = getContentResolver().query(uri, null, null, null, null);
             if (cursor != null) {
                 try {
                     if (cursor.moveToFirst()) {
-                        result = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
+                        Log.d(TAG, "getFileName: cursor.moveToFirst");
+                        fileName = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
                     }
                 } finally {
                     cursor.close();
                 }
             }
         }
-        if (result == null && uri.getPath() != null) {
-            result = uri.getPath();
-            int cut = result.lastIndexOf('/');
+        if (fileName == null && uri.getPath() != null) {
+            fileName = uri.getPath();
+            int cut = fileName.lastIndexOf('/');
             if (cut != -1) {
-                result = result.substring(cut + 1);
+                Log.d(TAG, "getFileName: fileName.substring");
+                fileName = fileName.substring(cut + 1);
             }
         }
-        return result;
+        return fileName;
     }
 
-    public static Bitmap getBitmapFromUrl(String url) throws IOException {
-        return BitmapFactory.decodeStream(new URL(url).openConnection().getInputStream());
+    public static Bitmap getBitmapFromUrl(String urlString) throws IOException {
+        Log.d(TAG, "getBitmapFromUrl: ");
+        try {
+            URL url = new URL(urlString);
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setDoInput(true);
+            connection.connect();
+            InputStream input = connection.getInputStream();
+            return BitmapFactory.decodeStream(input);
+        } catch (IOException e) {
+            // Log exception
+            Log.e(TAG, "getBitmapFromUrl: failed to make bitmap from url", e);
+            e.printStackTrace();
+        }
+        return null;
     }
-
 
 }

@@ -47,7 +47,7 @@ dependencies {
     // Firestore Firestore
     implementation 'com.google.firebase:firebase-firestore:19.0.2'
     // Firebase Storage
-    implementation 'com.google.firebase:firebase-storage:16.0.4'
+    implementation 'com.google.firebase:firebase-storage:17.0.0'
 
     // Google Play Services
 

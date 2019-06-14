@@ -2,6 +2,7 @@ package com.purpura.googlemaps2018.models;
 
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.support.annotation.NonNull;
 
 import java.util.Objects;
 
@@ -93,6 +94,7 @@ public class User implements Parcelable {
         this.username = username;
     }
 
+    @NonNull
     @Override
     public String toString() {
         return "User{" +

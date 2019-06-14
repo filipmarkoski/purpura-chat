@@ -5,6 +5,7 @@ import android.graphics.Bitmap;
 import android.support.annotation.NonNull;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -23,6 +24,8 @@ import java.util.ArrayList;
 
 public class ChatMessageRecyclerAdapter extends RecyclerView.Adapter<ChatMessageRecyclerAdapter.ViewHolder> {
 
+    private static final String TAG = "ChatMessageRecyclerAdap";
+
     private ArrayList<ChatMessage> mMessages = new ArrayList<>();
     private ArrayList<User> mUsers = new ArrayList<>();
     private Context mContext;
@@ -37,12 +40,12 @@ public class ChatMessageRecyclerAdapter extends RecyclerView.Adapter<ChatMessage
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.layout_chat_message_list_item_other, parent, false);
-        final ViewHolder holder = new ViewHolder(view);
-        return holder;
+        return new ViewHolder(view);
     }
 
     @Override
     public void onBindViewHolder(@NonNull final ViewHolder holder, final int position) {
+        Log.d(TAG, "onBindViewHolder: ");
         ChatMessage chatMessage = mMessages.get(position);
         User user = chatMessage.getUser();
 
@@ -55,12 +58,15 @@ public class ChatMessageRecyclerAdapter extends RecyclerView.Adapter<ChatMessage
         ((ViewHolder) holder).username.setText(user.getUsername());
 
         if (chatMessage.hasMessage()) {
+            Log.d(TAG, "onBindViewHolder: chatMessage.hasMessage=true");
             ((ViewHolder) holder).message.setText(chatMessage.getMessage());
         } else {
+            Log.d(TAG, "onBindViewHolder: chatMessage.hasMessage=false");
             ((ViewHolder) holder).message.setVisibility(View.GONE);
         }
 
         if (chatMessage.hasImageUrl()) {
+            Log.d(TAG, "onBindViewHolder: chatMessage.hasImageUrl=true");
             String imageUrl = chatMessage.getImageUrl();
             try {
                 Bitmap bitmapFromUrl = ChatroomActivity.getBitmapFromUrl(imageUrl);

@@ -68,14 +68,6 @@ public class ChatMessage {
         return this.imageUrl != null && !this.imageUrl.isEmpty();
     }
 
-    public Date getTimestamp() {
-        return timestamp;
-    }
-
-    public void setTimestamp(Date timestamp) {
-        this.timestamp = timestamp;
-    }
-
     @NonNull
     @Override
     public String toString() {

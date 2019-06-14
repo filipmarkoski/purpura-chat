@@ -2,6 +2,7 @@ package com.purpura.googlemaps2018.models;
 
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.support.annotation.NonNull;
 
 import java.util.ArrayList;
 
@@ -62,6 +63,7 @@ public class Chatroom implements Parcelable {
         this.chatroom_id = chatroom_id;
     }
 
+    @NonNull
     @Override
     public String toString() {
         return "Chatroom{" +
