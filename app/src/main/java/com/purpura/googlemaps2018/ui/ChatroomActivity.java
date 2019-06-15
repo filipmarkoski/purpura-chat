@@ -362,11 +362,7 @@ public class ChatroomActivity extends AppCompatActivity implements
 
             Log.d(TAG, "onActivityResult: CAPTURE_CAMERA_IMAGE_REQUEST");
 
-            // cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoUri);
-
-//            Bundle extras = data.getExtras();
-//            Uri imageUri = (Uri) extras.get(MediaStore.EXTRA_OUTPUT);
-            Uri imageUri = Uri.parse(mCurrentPhotoPath);
+            Uri imageUri = Uri.fromFile(new File(mCurrentPhotoPath));
 
             try {
                 storeImageToFirebaseStorage(imageUri);
@@ -389,8 +385,9 @@ public class ChatroomActivity extends AppCompatActivity implements
 
         String fileName = getFileName(uri);
         String userId = getCurrentUser().getUser_id();
-        String timestamp = Calendar.getInstance().getTime().toString().replaceAll("[\\s+:]", "_");
-        String imageName = String.format("userId_%s_timestamp_%s_fileName_%s", fileName, userId, timestamp);
+        // String timestamp = Calendar.getInstance().getTime().toString().replaceAll("[\\s+:]", "_");
+        @SuppressLint("SimpleDateFormat") String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        String imageName = String.format("userId_%s_timestamp_%s_fileName_%s", userId, timeStamp, fileName);
         final StorageReference imageRef = mImagesFolderRef.child(imageName);
         final UploadTask uploadTask = imageRef.putFile(uri);
 
@@ -509,7 +506,7 @@ public class ChatroomActivity extends AppCompatActivity implements
 
     private void insertNewMessage() {
         Log.d(TAG, "insertNewMessage: ");
-        String message = editTextMessage.getText().toString();
+        String message = editTextMessage.getText().toString().trim();
 
         if (message.length() > 0) {
             message = message.replaceAll(System.getProperty("line.separator"), "");
@@ -1022,21 +1019,5 @@ public class ChatroomActivity extends AppCompatActivity implements
         return fileName;
     }
 
-    public static Bitmap getBitmapFromUrl(String urlString) throws IOException {
-        Log.d(TAG, "getBitmapFromUrl: ");
-        try {
-            URL url = new URL(urlString);
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setDoInput(true);
-            connection.connect();
-            InputStream input = connection.getInputStream();
-            return BitmapFactory.decodeStream(input);
-        } catch (IOException e) {
-            // Log exception
-            Log.e(TAG, "getBitmapFromUrl: failed to make bitmap from url", e);
-            e.printStackTrace();
-        }
-        return null;
-    }
 
 }

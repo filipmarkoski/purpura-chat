@@ -2,6 +2,7 @@ package com.purpura.googlemaps2018.adapters;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.os.AsyncTask;
 import android.support.annotation.NonNull;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.RecyclerView;
@@ -18,6 +19,7 @@ import com.purpura.googlemaps2018.R;
 import com.purpura.googlemaps2018.models.ChatMessage;
 import com.purpura.googlemaps2018.models.User;
 import com.purpura.googlemaps2018.ui.ChatroomActivity;
+import com.squareup.picasso.Picasso;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -68,18 +70,25 @@ public class ChatMessageRecyclerAdapter extends RecyclerView.Adapter<ChatMessage
         if (chatMessage.hasImageUrl()) {
             Log.d(TAG, "onBindViewHolder: chatMessage.hasImageUrl=true");
             String imageUrl = chatMessage.getImageUrl();
-            try {
-                Bitmap bitmapFromUrl = ChatroomActivity.getBitmapFromUrl(imageUrl);
-                ((ViewHolder) holder).image.setImageBitmap(bitmapFromUrl);
-                ((ViewHolder) holder).image.setVisibility(View.VISIBLE);
-            } catch (IOException e) {
-                String message = String.format("%s's image failed to load", user.getUsername());
-                Toast.makeText(mContext, message, Toast.LENGTH_LONG).show();
-                e.printStackTrace();
-            }
-        }/* else {
-            ((ViewHolder) holder).image.setVisibility(View.GONE);
-        }*/
+
+            Picasso.get().load(imageUrl)
+                    /*.resize(100, 100)*/
+                    /*.fit()*/
+                    .into(holder.image, new com.squareup.picasso.Callback() {
+
+                        @Override
+                        public void onSuccess() {
+                            holder.image.setVisibility(View.VISIBLE);
+                        }
+
+                        @Override
+                        public void onError(Exception e) {
+                            e.printStackTrace();
+                        }
+                    });
+
+
+        } /* else: by default the imageView visibility is set to View.GONE */
     }
 
 
@@ -88,7 +97,7 @@ public class ChatMessageRecyclerAdapter extends RecyclerView.Adapter<ChatMessage
         return mMessages.size();
     }
 
-    public class ViewHolder extends RecyclerView.ViewHolder {
+    public final static class ViewHolder extends RecyclerView.ViewHolder {
         TextView message, username;
         ImageView image;
 
