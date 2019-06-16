@@ -1,9 +1,9 @@
 package com.purpura.googlemaps2018.ui;
 
 import android.annotation.SuppressLint;
-import android.content.ClipData;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.pm.PackageManager;
-import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.os.Build;
 import android.app.Activity;
@@ -23,6 +23,7 @@ import android.support.text.emoji.EmojiCompat;
 import android.support.text.emoji.FontRequestEmojiCompatConfig;
 import android.support.text.emoji.widget.EmojiAppCompatEditText;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.FileProvider;
@@ -35,6 +36,8 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.Toast;
 
@@ -69,14 +72,11 @@ import com.purpura.googlemaps2018.models.UserLocation;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import static com.purpura.googlemaps2018.Constants.PERMISSIONS_REQUEST_CAMERA;
@@ -168,7 +168,7 @@ public class ChatroomActivity extends AppCompatActivity implements
             public void onClick(View v) {
                 Log.d(TAG, "(btnCamera) onClick: ");
                 Toast.makeText(chatroomActivity, "Opening camera...", Toast.LENGTH_SHORT).show();
-                if (true || checkCameraPermissionGranted()) {
+                if (checkCameraPermissionGranted()) {
                     getCameraImage();
                 }
             }
@@ -182,8 +182,8 @@ public class ChatroomActivity extends AppCompatActivity implements
 
         getIncomingIntent();
         initChatroomRecyclerView();
-
     }
+
 
     private void storeImageDownloadUrlToCloudFirestore(String imageDownloadURL) {
         Log.d(TAG, "storeImageDownloadUrlToCloudFirestore: ");
@@ -241,10 +241,6 @@ public class ChatroomActivity extends AppCompatActivity implements
             startActivityForResult(galleryChooser, Constants.SELECT_GALLERY_IMAGE_REQUEST);
         }
     }
-
-
-    private static final int REQUEST_TAKE_PHOTO = 100;
-
 
     private void getCameraImage() {
         Log.d(TAG, "getCameraImage: ");
@@ -321,17 +317,6 @@ public class ChatroomActivity extends AppCompatActivity implements
         return image;
     }
 
-    private String getFilePath(Uri uri) {
-        Log.d(TAG, "getFilePath: ");
-        String state = Environment.getExternalStorageState();
-        File filesDir;
-        if (Environment.MEDIA_MOUNTED.equals(state)) {
-            filesDir = new File(Environment.getExternalStorageDirectory() + "/PurpuraChat/Media", "Images");
-        } else {
-            filesDir = new File(getApplicationContext().getExternalFilesDir(null), "Images");
-        }
-        return filesDir.toString() + uri.toString().substring(uri.toString().lastIndexOf('/'));
-    }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
@@ -475,8 +460,10 @@ public class ChatroomActivity extends AppCompatActivity implements
                 .document(mChatroom.getChatroom_id())
                 .collection(getString(R.string.collection_chat_messages));
 
+        // get the last 1000 messages
         mChatMessageEventListener = messagesRef
-                .orderBy("timestamp", Query.Direction.ASCENDING)
+                .orderBy("timestamp", Query.Direction.DESCENDING)
+                .limit(1000L)
                 .addSnapshotListener(new EventListener<QuerySnapshot>() {
                     @Override
                     public void onEvent(@javax.annotation.Nullable QuerySnapshot queryDocumentSnapshots, @javax.annotation.Nullable FirebaseFirestoreException e) {
@@ -488,10 +475,11 @@ public class ChatroomActivity extends AppCompatActivity implements
                         if (queryDocumentSnapshots != null) {
                             for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
 
-                                ChatMessage message = doc.toObject(ChatMessage.class);
-                                if (!mMessageIds.contains(message.getMessage_id())) {
-                                    mMessageIds.add(message.getMessage_id());
-                                    mMessages.add(message);
+                                ChatMessage chatMessage = doc.toObject(ChatMessage.class);
+
+                                if (!mMessageIds.contains(chatMessage.getMessage_id())) {
+                                    mMessageIds.add(chatMessage.getMessage_id());
+                                    mMessages.add(chatMessage);
                                     mChatMessageRecyclerView.smoothScrollToPosition(mMessages.size() - 1);
                                 }
 
@@ -506,26 +494,28 @@ public class ChatroomActivity extends AppCompatActivity implements
 
     private void insertNewMessage() {
         Log.d(TAG, "insertNewMessage: ");
+        String lineSeparator = System.getProperty("line.separator");
         String message = editTextMessage.getText().toString().trim();
 
-        if (message.length() > 0) {
-            message = message.replaceAll(System.getProperty("line.separator"), "");
+        if (message.length() > 0 && lineSeparator != null) {
+            message = message.replaceAll(lineSeparator, "");
 
-            DocumentReference newMessageDoc = mDb
+            DocumentReference chatMessageDoc = mDb
                     .collection(getString(R.string.collection_chatrooms))
                     .document(mChatroom.getChatroom_id())
                     .collection(getString(R.string.collection_chat_messages))
                     .document();
 
-            ChatMessage newChatMessage = new ChatMessage();
-            newChatMessage.setMessage(message);
-            newChatMessage.setMessage_id(newMessageDoc.getId());
+            ChatMessage chatMessage = new ChatMessage();
+            chatMessage.setMessage(message);
+            chatMessage.setMessage_id(chatMessageDoc.getId());
+            chatMessage.setTimestamp(null);
 
             User user = ((UserClient) (getApplicationContext())).getUser();
             Log.d(TAG, "insertNewMessage: retrieved user client: " + user.toString());
-            newChatMessage.setUser(user);
+            chatMessage.setUser(user);
 
-            newMessageDoc.set(newChatMessage).addOnCompleteListener(new OnCompleteListener<Void>() {
+            chatMessageDoc.set(chatMessage).addOnCompleteListener(new OnCompleteListener<Void>() {
                 @Override
                 public void onComplete(@NonNull Task<Void> task) {
                     if (task.isSuccessful()) {
@@ -586,7 +576,7 @@ public class ChatroomActivity extends AppCompatActivity implements
 
     private void initChatroomRecyclerView() {
         Log.d(TAG, "initChatroomRecyclerView: ");
-        mChatMessageRecyclerAdapter = new ChatMessageRecyclerAdapter(mMessages, new ArrayList<User>(), this);
+        mChatMessageRecyclerAdapter = new ChatMessageRecyclerAdapter(chatroomActivity, mMessages);
         mChatMessageRecyclerView.setAdapter(mChatMessageRecyclerAdapter);
         mChatMessageRecyclerView.setLayoutManager(new LinearLayoutManager(this));
 
@@ -623,7 +613,7 @@ public class ChatroomActivity extends AppCompatActivity implements
         if (getIntent().hasExtra(getString(R.string.intent_chatroom))) {
             Log.d(TAG, "getIncomingIntent: hasExtra");
             mChatroom = getIntent().getParcelableExtra(getString(R.string.intent_chatroom));
-            setChatroomName();
+            displayChatroomName();
             joinChatroom();
         }
     }
@@ -677,23 +667,38 @@ public class ChatroomActivity extends AppCompatActivity implements
 
     private void joinChatroom() {
         Log.d(TAG, "joinChatroom: ");
-        DocumentReference joinChatroomRef = mDb
-                .collection(getString(R.string.collection_chatrooms))
-                .document(mChatroom.getChatroom_id())
-                .collection(getString(R.string.collection_chatroom_user_list))
-                .document(mAuth.getUid());
 
-        User user = getCurrentUser();
-        mChatroom.addUser(user);
-        joinChatroomRef.set(user); // Don't care about listening for completion.
+        String chatroomId = mChatroom.getChatroom_id();
+        String userId = mAuth.getUid();
+
+        if (chatroomId != null && userId != null) {
+            DocumentReference joinedChatroomRef = mDb
+                    .collection(getString(R.string.collection_chatrooms))
+                    .document(chatroomId)
+                    .collection(getString(R.string.collection_chatroom_user_list))
+                    .document(userId);
+
+            User user = getCurrentUser();
+            mChatroom.addUser(user);
+            joinedChatroomRef.set(user); // Don't care about listening for completion.
+        } else {
+            boolean chatroomIdFound = chatroomId != null;
+            boolean userIdFound = userId != null;
+            String message = String.format("User %s, Chatroom %s",
+                    userIdFound ? "found" : "not found",
+                    chatroomIdFound ? "found" : "not found");
+            Toast.makeText(chatroomActivity, message, Toast.LENGTH_SHORT).show();
+        }
     }
 
 
-    private void setChatroomName() {
-        Log.d(TAG, "setChatroomName: ");
-        getSupportActionBar().setTitle(mChatroom.getTitle());
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        getSupportActionBar().setHomeButtonEnabled(true);
+    private void displayChatroomName() {
+        Log.d(TAG, "displayChatroomName: ");
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setTitle(mChatroom.getTitle());
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setHomeButtonEnabled(true);
+        }
     }
 
     @Override
@@ -780,6 +785,33 @@ public class ChatroomActivity extends AppCompatActivity implements
         return fragment != null && fragment.isVisible();
     }
 
+
+    @Override
+    public void addSelectedUserToChatroom(User user) {
+        Log.d(TAG, "addSelectedUserToChatroom: ");
+
+        DocumentReference joinChatroomRef = mDb
+                .collection(getString(R.string.collection_chatrooms))
+                .document(mChatroom.getChatroom_id());
+
+        mChatroom.addUser(user);
+        joinChatroomRef.set(mChatroom).addOnCompleteListener(new OnCompleteListener<Void>() {
+            @Override
+            public void onComplete(@NonNull Task<Void> task) {
+                if (task.isSuccessful()) {
+                    getSupportFragmentManager().popBackStack();
+                    restartListFragmentIfVisible();
+                } else {
+                    View parentLayout = findViewById(android.R.id.content);
+                    Snackbar.make(parentLayout, "Something went wrong.", Snackbar.LENGTH_SHORT).show();
+                }
+            }
+        });
+
+
+    }
+
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
@@ -804,7 +836,19 @@ public class ChatroomActivity extends AppCompatActivity implements
                 toggleShareLocationInChatroom();
                 return true;
             }
-            case R.id.action_add_user_to_chatroom: {
+            case R.id.action_chatroom_delete: {
+                displayDeleteChatroomDialog();
+                return true;
+            }
+            case R.id.action_chatroom_rename: {
+                displayRenameChatroomDialog();
+                return true;
+            }
+            case R.id.action_chatroom_find: {
+                displayFindChatroomDialog();
+                return true;
+            }
+            case R.id.action_chatroom_add_user: {
                 inflateAddUserToChatFragment();
                 return true;
             }
@@ -814,6 +858,215 @@ public class ChatroomActivity extends AppCompatActivity implements
         }
 
     }
+
+    /**
+     * Dialog display functions
+     */
+
+    private void displayDeleteChatroomDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(chatroomActivity);
+        String deleteKeyword = "Delete";
+        String alertDialogTitle = String.format("Enter '%s' to delete the chatroom", deleteKeyword);
+        builder.setTitle(alertDialogTitle);
+
+        View renameChatroomDialog = View.inflate(this, R.layout.layout_chatroom_rename, null);
+
+        EditText editDeleteKeyword = (EditText) renameChatroomDialog.findViewById(R.id.edit_chatroom_name);
+
+        builder.setView(renameChatroomDialog).setCancelable(false);
+
+        builder.setPositiveButton("Delete", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                String enteredKeyword = editDeleteKeyword.getText().toString().trim();
+                if (!enteredKeyword.isEmpty() && enteredKeyword.equals(deleteKeyword)) {
+                    deleteChatroom(mChatroom);
+                } else {
+                    Toast.makeText(chatroomActivity, "Enter new chatroom name", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+            }
+        });
+
+        builder.show();
+    }
+
+    private void displayRenameChatroomDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(chatroomActivity);
+        builder.setTitle("Enter a chatroom name");
+
+        View renameChatroomDialog = View.inflate(this, R.layout.layout_chatroom_rename, null);
+
+        EditText editChatroomName = (EditText) renameChatroomDialog.findViewById(R.id.edit_chatroom_name);
+
+        editChatroomName.setText(mChatroom.getTitle());
+        editChatroomName.setSelection(editChatroomName.getText().length());
+
+
+        builder.setView(renameChatroomDialog).setCancelable(false);
+
+        builder.setPositiveButton("Rename", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                String chatroomName = editChatroomName.getText().toString().trim();
+                if (!chatroomName.isEmpty()) {
+                    renameChatroom(chatroomName);
+                } else {
+                    Toast.makeText(chatroomActivity, "Enter new chatroom name", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+            }
+        });
+
+        builder.show();
+    }
+
+    /**
+     * TODO: Try making a prediction or suggestion in choosing the targetString
+     * https://stackoverflow.com/a/29101069/3950168
+     * UserDictionary.Words.addWord(....)
+     */
+    private void displayFindChatroomDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(chatroomActivity);
+        builder.setTitle("Enter a chatroom name");
+
+        View findTargetStringMessagesDialog = View.inflate(this, R.layout.layout_chatroom_find, null);
+
+        EditText editChatMessageTargetString = (EditText) findTargetStringMessagesDialog.findViewById(R.id.edit_chat_message_target);
+
+        editChatMessageTargetString.setText("");
+
+        builder.setView(findTargetStringMessagesDialog).setCancelable(false);
+
+        builder.setPositiveButton("Rename", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                String targetString = editChatMessageTargetString.getText().toString().trim();
+                if (!targetString.isEmpty()) {
+                    List<ChatMessage> filteredChatMessages = findChatMessagesByTargetString(targetString);
+
+                    // TODO @param filteredChatMessages
+
+                } else {
+                    Toast.makeText(chatroomActivity, "Enter a word to filter the messages by", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+            }
+        });
+
+        builder.show();
+    }
+
+    /**
+     * Dialog-related worker functions
+     */
+
+    private void deleteChatroom(Chatroom chatroom) {
+        DocumentReference joinedChatroomRef = mDb
+                .collection(getString(R.string.collection_chatrooms))
+                .document(chatroom.getChatroom_id());
+
+        joinedChatroomRef.delete().addOnCompleteListener(new OnCompleteListener<Void>() {
+            @Override
+            public void onComplete(@NonNull Task<Void> task) {
+                String message = String.format("Chatroom '%s' deleted", chatroom.getTitle());
+                Toast.makeText(chatroomActivity, message, Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        /*Intent mainActivityIntent = new Intent(chatroomActivity, MainActivity.class);
+        startActivity(mainActivityIntent);*/
+
+
+        if (getSupportFragmentManager().getBackStackEntryCount() > 0) {
+            super.onBackPressed();
+        }
+        finish();
+
+    }
+
+    private void renameChatroom(String title) {
+        DocumentReference joinedChatroomRef = mDb
+                .collection(getString(R.string.collection_chatrooms))
+                .document(mChatroom.getChatroom_id());
+
+        mChatroom.setTitle(title);
+
+        joinedChatroomRef.set(mChatroom)
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Log.d(TAG, "onFailure: ", e);
+                    }
+                }).addOnSuccessListener(new OnSuccessListener<Void>() {
+            @Override
+            public void onSuccess(Void aVoid) {
+                Log.d(TAG, "onSuccess: ");
+            }
+        }).addOnCompleteListener(new OnCompleteListener<Void>() {
+            @Override
+            public void onComplete(@NonNull Task<Void> task) {
+                Log.d(TAG, "onComplete: ");
+                View parentLayout = findViewById(android.R.id.content);
+                if (task.isSuccessful()) {
+                    if (chatroomActivity.getSupportActionBar() != null) {
+                        chatroomActivity.getSupportActionBar().setDisplayShowTitleEnabled(true);
+                        chatroomActivity.getSupportActionBar().setTitle(mChatroom.getTitle());
+
+                    }
+                    String message = String.format("Chatroom renamed to %s", title);
+                    Snackbar.make(parentLayout, message, Snackbar.LENGTH_SHORT).show();
+                } else {
+                    Snackbar.make(parentLayout, "Failed to rename the chatroom", Snackbar.LENGTH_SHORT).show();
+                }
+            }
+        });
+    }
+
+    /**
+     * @param targetString the string which were are trying to find within the messages in the chatroom
+     */
+    private List<ChatMessage> findChatMessagesByTargetString(/*Chatroom chatroom, */String targetString) {
+        if (mMessages != null && mMessages.size() > 0) {
+            List<ChatMessage> chatMessages = new ArrayList<>();
+
+            /*
+             * Firebase doesn't offer full-text search, for such operations
+             * external services like Algolia or ElasticSearch are needed
+             * they both offer 14 day free trials for non-commercial products
+             * */
+
+            // The messages should be pre-fetched and ordered by timestamp already
+            // The messages are limited to a maximum count of 1000
+            for (ChatMessage chatMessage : mMessages) {
+                if (chatMessage != null && chatMessage.hasMessage() && chatMessage.getMessage().contains(targetString)) {
+                    chatMessages.add(chatMessage);
+                }
+            }
+
+            return chatMessages;
+        }
+        return null;
+    }
+
+    /**
+     * Inflation-related functions
+     */
 
     private void inflateUsersInChatFragment() {
         Log.d(TAG, "inflateUsersInChatFragment: ");
@@ -881,31 +1134,6 @@ public class ChatroomActivity extends AppCompatActivity implements
             }
         }
     }*/
-
-    @Override
-    public void addSelectedUserToChatroom(User user) {
-        Log.d(TAG, "addSelectedUserToChatroom: ");
-        ;
-        DocumentReference joinChatroomRef = mDb
-                .collection(getString(R.string.collection_chatrooms))
-                .document(mChatroom.getChatroom_id());
-
-        mChatroom.addUser(user);
-        joinChatroomRef.set(mChatroom).addOnCompleteListener(new OnCompleteListener<Void>() {
-            @Override
-            public void onComplete(@NonNull Task<Void> task) {
-                if (task.isSuccessful()) {
-                    getSupportFragmentManager().popBackStack();
-                    restartListFragmentIfVisible();
-                } else {
-                    View parentLayout = findViewById(android.R.id.content);
-                    Snackbar.make(parentLayout, "Something went wrong.", Snackbar.LENGTH_SHORT).show();
-                }
-            }
-        });
-
-
-    }
 
     /**
      * Permission-related Code
@@ -1019,5 +1247,19 @@ public class ChatroomActivity extends AppCompatActivity implements
         return fileName;
     }
 
+    /**
+     * Unused Code
+     */
 
+    private String getFilePath(Uri uri) {
+        Log.d(TAG, "getFilePath: ");
+        String state = Environment.getExternalStorageState();
+        File filesDir;
+        if (Environment.MEDIA_MOUNTED.equals(state)) {
+            filesDir = new File(Environment.getExternalStorageDirectory() + "/PurpuraChat/Media", "Images");
+        } else {
+            filesDir = new File(getApplicationContext().getExternalFilesDir(null), "Images");
+        }
+        return filesDir.toString() + uri.toString().substring(uri.toString().lastIndexOf('/'));
+    }
 }

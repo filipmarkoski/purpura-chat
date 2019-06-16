@@ -1,11 +1,13 @@
 package com.purpura.googlemaps2018.models;
 
 import android.graphics.Bitmap;
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import com.google.firebase.firestore.ServerTimestamp;
 import java.util.Date;
 
-public class ChatMessage {
+public class ChatMessage implements Parcelable {
 
     private User user;
     private String message;
@@ -26,6 +28,35 @@ public class ChatMessage {
         this.message_id = message_id;
         this.imageUrl = imageUrl;
         this.timestamp = timestamp;
+    }
+
+    public ChatMessage(Parcel in) {
+        this.user = (User) in.readValue(User.class.getClassLoader());
+        this.message = in.readString();
+        this.message_id = in.readString();
+        this.imageUrl = in.readString();
+        this.timestamp = (Date) in.readValue(Date.class.getClassLoader());
+    }
+
+    public static final Creator<ChatMessage> CREATOR = new Creator<ChatMessage>() {
+        @Override
+        public ChatMessage createFromParcel(Parcel in) {
+            return new ChatMessage(in);
+        }
+
+        @Override
+        public ChatMessage[] newArray(int size) {
+            return new ChatMessage[size];
+        }
+    };
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeValue(this.user);
+        dest.writeString(this.message);
+        dest.writeString(this.message_id);
+        dest.writeString(this.imageUrl);
+        dest.writeValue(this.timestamp);
     }
 
     public User getUser() {
@@ -68,6 +99,14 @@ public class ChatMessage {
         return this.imageUrl != null && !this.imageUrl.isEmpty();
     }
 
+    public Date getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(Date timestamp) {
+        this.timestamp = timestamp;
+    }
+
     @NonNull
     @Override
     public String toString() {
@@ -79,4 +118,11 @@ public class ChatMessage {
                 ", timestamp=" + timestamp +
                 '}';
     }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+
 }

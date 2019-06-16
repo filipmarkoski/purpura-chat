@@ -4,7 +4,9 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="10dp">
+    android:padding="100dp">
+
+    <!--THIS IS NOT THE LAYOUT USED BY CHATROOM ACTIVITY-->
 
     <TextView
         android:id="@+id/chat_message_username"

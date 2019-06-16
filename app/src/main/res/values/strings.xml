@@ -36,6 +36,7 @@
     <string name="intent_user_list">intent_user_list</string>
     <string name="intent_user_locations">intent_user_locations</string>
     <string name="intent_location">intent_location</string>
+    <string name="intent_filtered_chat_messages">intent_filtered_chat_messages</string>
 
     <!-- Service and Broadcasts -->
     <string name="gps_location">gps_location</string>
@@ -57,6 +58,8 @@
     <string name="intent_user_to_add">user_to_add_in_chatroom</string>
     <string name="fragment_add_user_to_chatroom">Add_user_to_chatroom</string>
     <string name="enter_message_hint">Enter message…</string>
+    <string name="rename_chatroom">Rename Chatroom</string>
+    <string name="delete_chatroom">Delete Chatroom</string>
 
 
 </resources>

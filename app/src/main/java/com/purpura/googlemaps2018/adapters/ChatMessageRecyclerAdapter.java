@@ -29,13 +29,12 @@ public class ChatMessageRecyclerAdapter extends RecyclerView.Adapter<ChatMessage
     private static final String TAG = "ChatMessageRecyclerAdap";
 
     private ArrayList<ChatMessage> mMessages = new ArrayList<>();
-    private ArrayList<User> mUsers = new ArrayList<>();
+
     private Context mContext;
 
-    public ChatMessageRecyclerAdapter(ArrayList<ChatMessage> messages, ArrayList<User> users, Context context) {
-        this.mMessages = messages;
-        this.mUsers = users;
+    public ChatMessageRecyclerAdapter(Context context, ArrayList<ChatMessage> messages) {
         this.mContext = context;
+        this.mMessages = messages;
     }
 
     @NonNull
@@ -79,6 +78,7 @@ public class ChatMessageRecyclerAdapter extends RecyclerView.Adapter<ChatMessage
                         @Override
                         public void onSuccess() {
                             holder.image.setVisibility(View.VISIBLE);
+                            holder.image.setAdjustViewBounds(true);
                         }
 
                         @Override
@@ -109,6 +109,10 @@ public class ChatMessageRecyclerAdapter extends RecyclerView.Adapter<ChatMessage
         }
     }
 
+
+    public interface FilteredChatMessagesRecyclerClickListener {
+        void onChatMessageClicked(int position);
+    }
 
 }
 

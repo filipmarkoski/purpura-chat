@@ -8,7 +8,6 @@ import java.util.ArrayList;
 
 public class Chatroom implements Parcelable {
 
-
     private String title;
     private String chatroom_id;
     private Boolean isPrivate;

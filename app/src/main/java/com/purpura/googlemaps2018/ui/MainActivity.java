@@ -405,18 +405,13 @@ public class MainActivity extends AppCompatActivity implements
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Enter a chatroom name");
-/*
-        final EditText input = new EditText(this);
-        input.setInputType(InputType.TYPE_CLASS_TEXT);
-        builder.setView(input);*/
+
         final Boolean[] isPrivate = {false};
         View checkBoxView = View.inflate(this, R.layout.private_checkbox, null);
         CheckBox checkBox = (CheckBox) checkBoxView.findViewById(R.id.checkbox);
         checkBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-
                 isPrivate[0] = isChecked;
             }
         });
