@@ -110,10 +110,6 @@ public class ChatroomActivity extends AppCompatActivity implements
                 }
             }
         });
-        getIncomingIntent();
-        initChatroomRecyclerView();
-        locationSwitch.setChecked(mChatroom.isLocationEnabled(getCurrentUser()));
-
 
     }
 
@@ -399,6 +395,11 @@ public class ChatroomActivity extends AppCompatActivity implements
     @Override
     protected void onResume() {
         super.onResume();
+        getIncomingIntent();
+        initChatroomRecyclerView();
+        locationSwitch.setChecked(mChatroom.isLocationEnabled(getCurrentUser()));
+
+
         getChatMessages();
         getChatroomUsers();
     }
@@ -568,7 +569,8 @@ public class ChatroomActivity extends AppCompatActivity implements
             @Override
             public void onComplete(@NonNull Task<Void> task) {
                 if (task.isSuccessful()) {
-                    getSupportFragmentManager().popBackStack();
+                    //getSupportFragmentManager().popBackStack();
+                    ChatroomActivity.super.onBackPressed();
                     restartListFragmentIfVisible();
                 } else {
                     View parentLayout = findViewById(android.R.id.content);
