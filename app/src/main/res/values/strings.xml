@@ -45,6 +45,8 @@
     <!-- Fragments Names -->
     <string name="fragment_user_list">User List</string>
     <string name="fragment_image_list">Image List</string>
+    <string name="fragment_add_user_to_chatroom">Add_user_to_chatroom</string>
+    <string name="fragment_filtered_chat_messages">Filtered Chat Messages List</string>
 
     <!-- Other Strings -->
     <string name="action_create_chatroom">Create Chatroom</string>
@@ -56,10 +58,10 @@
     <string name="disable_location">Stop sharing your location</string>
     <string name="add_user_to_chatroom">Add user</string>
     <string name="intent_user_to_add">user_to_add_in_chatroom</string>
-    <string name="fragment_add_user_to_chatroom">Add_user_to_chatroom</string>
     <string name="enter_message_hint">Enter message…</string>
     <string name="rename_chatroom">Rename Chatroom</string>
     <string name="delete_chatroom">Delete Chatroom</string>
+    <string name="search_chatroom">Search Chatroom</string>
 
 
 </resources>

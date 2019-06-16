@@ -30,8 +30,8 @@
 
 
     <item
-        android:id="@+id/action_chatroom_find"
-        android:title="@string/rename_chatroom"
+        android:id="@+id/action_chatroom_search"
+        android:title="@string/search_chatroom"
         app:showAsAction="never" />
 
     <item

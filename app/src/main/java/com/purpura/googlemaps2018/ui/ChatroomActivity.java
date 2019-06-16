@@ -23,7 +23,6 @@ import android.support.text.emoji.EmojiCompat;
 import android.support.text.emoji.FontRequestEmojiCompatConfig;
 import android.support.text.emoji.widget.EmojiAppCompatEditText;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.FileProvider;
@@ -36,8 +35,6 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.CheckBox;
-import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.Toast;
 
@@ -74,6 +71,7 @@ import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -83,7 +81,8 @@ import static com.purpura.googlemaps2018.Constants.PERMISSIONS_REQUEST_CAMERA;
 import static com.purpura.googlemaps2018.Constants.PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE;
 
 public class ChatroomActivity extends AppCompatActivity implements
-        AddUserToChatFragment.OnUserSelectedListener {
+        AddUserToChatFragment.OnUserSelectedListener,
+        FilteredChatMessagesFragment.OnChatMessageSelectedListener {
 
     private static final String TAG = "ChatroomActivity";
     private final ChatroomActivity chatroomActivity = this;
@@ -451,6 +450,9 @@ public class ChatroomActivity extends AppCompatActivity implements
 
     }
 
+    // the first time the function is called is odd, thus the first time results in true
+    private boolean theNumberTheFunctionIsCalledIsOdd = true;
+    private int numberOfMessagesEntered = 0;
 
     private void getChatMessages() {
         Log.d(TAG, "getChatMessages: ");
@@ -482,8 +484,14 @@ public class ChatroomActivity extends AppCompatActivity implements
                                     mMessages.add(chatMessage);
                                     mChatMessageRecyclerView.smoothScrollToPosition(mMessages.size() - 1);
                                 }
-
                             }
+
+                            // reverse the last one thousand messages so they come in ascending order
+                            // as they were naturally written
+                            if (numberOfMessagesEntered == 0) {
+                                Collections.reverse(mMessages);
+                            }
+                            numberOfMessagesEntered += 1;
                             mChatMessageRecyclerAdapter.notifyDataSetChanged();
 
                         }
@@ -578,7 +586,7 @@ public class ChatroomActivity extends AppCompatActivity implements
         Log.d(TAG, "initChatroomRecyclerView: ");
         mChatMessageRecyclerAdapter = new ChatMessageRecyclerAdapter(chatroomActivity, mMessages);
         mChatMessageRecyclerView.setAdapter(mChatMessageRecyclerAdapter);
-        mChatMessageRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        mChatMessageRecyclerView.setLayoutManager(new LinearLayoutManager(chatroomActivity));
 
         mChatMessageRecyclerView.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
             @Override
@@ -844,8 +852,8 @@ public class ChatroomActivity extends AppCompatActivity implements
                 displayRenameChatroomDialog();
                 return true;
             }
-            case R.id.action_chatroom_find: {
-                displayFindChatroomDialog();
+            case R.id.action_chatroom_search: {
+                displaySearchChatroomDialog();
                 return true;
             }
             case R.id.action_chatroom_add_user: {
@@ -907,7 +915,6 @@ public class ChatroomActivity extends AppCompatActivity implements
         editChatroomName.setText(mChatroom.getTitle());
         editChatroomName.setSelection(editChatroomName.getText().length());
 
-
         builder.setView(renameChatroomDialog).setCancelable(false);
 
         builder.setPositiveButton("Rename", new DialogInterface.OnClickListener() {
@@ -936,26 +943,27 @@ public class ChatroomActivity extends AppCompatActivity implements
      * https://stackoverflow.com/a/29101069/3950168
      * UserDictionary.Words.addWord(....)
      */
-    private void displayFindChatroomDialog() {
+    private void displaySearchChatroomDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(chatroomActivity);
-        builder.setTitle("Enter a chatroom name");
+        builder.setTitle("Enter a sequence of letters to search by");
 
         View findTargetStringMessagesDialog = View.inflate(this, R.layout.layout_chatroom_find, null);
 
         EditText editChatMessageTargetString = (EditText) findTargetStringMessagesDialog.findViewById(R.id.edit_chat_message_target);
 
         editChatMessageTargetString.setText("");
+        editChatMessageTargetString.setSelection(editChatMessageTargetString.getText().length());
 
         builder.setView(findTargetStringMessagesDialog).setCancelable(false);
 
-        builder.setPositiveButton("Rename", new DialogInterface.OnClickListener() {
+        builder.setPositiveButton("Search", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 String targetString = editChatMessageTargetString.getText().toString().trim();
                 if (!targetString.isEmpty()) {
-                    List<ChatMessage> filteredChatMessages = findChatMessagesByTargetString(targetString);
+                    List<ChatMessage> filteredChatMessages = searchChatMessagesByTargetString(targetString);
 
-                    // TODO @param filteredChatMessages
+                    inflateFilteredChatMessagesFragment(filteredChatMessages);
 
                 } else {
                     Toast.makeText(chatroomActivity, "Enter a word to filter the messages by", Toast.LENGTH_SHORT).show();
@@ -1041,9 +1049,9 @@ public class ChatroomActivity extends AppCompatActivity implements
     /**
      * @param targetString the string which were are trying to find within the messages in the chatroom
      */
-    private List<ChatMessage> findChatMessagesByTargetString(/*Chatroom chatroom, */String targetString) {
+    private List<ChatMessage> searchChatMessagesByTargetString(/*Chatroom chatroom, */String targetString) {
         if (mMessages != null && mMessages.size() > 0) {
-            List<ChatMessage> chatMessages = new ArrayList<>();
+            List<ChatMessage> filteredChatMessages = new ArrayList<>();
 
             /*
              * Firebase doesn't offer full-text search, for such operations
@@ -1052,14 +1060,20 @@ public class ChatroomActivity extends AppCompatActivity implements
              * */
 
             // The messages should be pre-fetched and ordered by timestamp already
-            // The messages are limited to a maximum count of 1000
+            // The messages are limited to a maximum numberOfMessagesEntered of 1000
             for (ChatMessage chatMessage : mMessages) {
-                if (chatMessage != null && chatMessage.hasMessage() && chatMessage.getMessage().contains(targetString)) {
-                    chatMessages.add(chatMessage);
+                if (chatMessage != null && chatMessage.hasMessage()) {
+
+                    String message = chatMessage.getMessage().trim().toLowerCase();
+                    String target = targetString.trim().toLowerCase();
+                    if (message.contains(target)) {
+                        filteredChatMessages.add(chatMessage);
+                    }
+
                 }
             }
 
-            return chatMessages;
+            return filteredChatMessages;
         }
         return null;
     }
@@ -1125,15 +1139,23 @@ public class ChatroomActivity extends AppCompatActivity implements
                 });
 
     }
-/*
-    @Override
-    public void onClick(View v) {
-        switch (v.getId()) {
-            case R.id.checkmark: {
-                insertNewMessage();
-            }
-        }
-    }*/
+
+    private void inflateFilteredChatMessagesFragment(List<ChatMessage> filteredChatMessages) {
+        Log.d(TAG, "inflateFilteredChatMessagesFragment: ");
+        hideSoftKeyboard();
+
+        FilteredChatMessagesFragment fragment = FilteredChatMessagesFragment.newInstance();
+        Bundle bundle = new Bundle();
+        String intentKey = getString(R.string.intent_filtered_chat_messages);
+        bundle.putParcelableArrayList(intentKey, (ArrayList<ChatMessage>) filteredChatMessages);
+        fragment.setArguments(bundle);
+
+        FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
+        transaction.setCustomAnimations(R.anim.slide_in_up, R.anim.slide_out_up);
+        transaction.replace(R.id.chatroom_fragment_container, fragment, getString(R.string.fragment_filtered_chat_messages));
+        transaction.addToBackStack(getString(R.string.fragment_filtered_chat_messages));
+        transaction.commit();
+    }
 
     /**
      * Permission-related Code
@@ -1261,5 +1283,10 @@ public class ChatroomActivity extends AppCompatActivity implements
             filesDir = new File(getApplicationContext().getExternalFilesDir(null), "Images");
         }
         return filesDir.toString() + uri.toString().substring(uri.toString().lastIndexOf('/'));
+    }
+
+    @Override
+    public void findSelectChatMessageInChatroom(ChatMessage chatMessage) {
+        Toast.makeText(chatroomActivity, chatMessage.getMessage(), Toast.LENGTH_SHORT).show();
     }
 }
