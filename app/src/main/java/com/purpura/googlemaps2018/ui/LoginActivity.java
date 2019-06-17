@@ -44,8 +44,10 @@ public class LoginActivity extends AppCompatActivity implements
     private static final String TAG = "LoginActivity";
     private static final int RC_SIGN_IN = 1234;
 
+    //Firebase
     private FirebaseAuth.AuthStateListener mAuthListener;
 
+    // widgets
     private EditText mEmail, mPassword;
     private ProgressBar mProgressBar;
     private GoogleSignInClient mGoogleSignInClient;
@@ -95,7 +97,6 @@ public class LoginActivity extends AppCompatActivity implements
         this.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
     }
 
-
     private void setupFirebaseAuth(){
         Log.d(TAG, "setupFirebaseAuth: started.");
 
@@ -108,18 +109,17 @@ public class LoginActivity extends AppCompatActivity implements
         };
     }
 
-
     public void saveUser(FirebaseUser firebaseUser) {
 
         if (firebaseUser != null) {
             Log.d(TAG, "onAuthStateChanged:signed_in:" + firebaseUser.getUid());
             Toast.makeText(LoginActivity.this, "Authenticated with: " + firebaseUser.getEmail(), Toast.LENGTH_SHORT).show();
 
-            FirebaseFirestore db = FirebaseFirestore.getInstance();
-            FirebaseFirestoreSettings settings = new FirebaseFirestoreSettings.Builder()
-                    .setTimestampsInSnapshotsEnabled(true)
-                    .build();
-            db.setFirestoreSettings(settings);
+                    FirebaseFirestore db = FirebaseFirestore.getInstance();
+                    /*FirebaseFirestoreSettings settings = new FirebaseFirestoreSettings.Builder()
+                            .setTimestampsInSnapshotsEnabled(true)
+                            .build();
+                    db.setFirestoreSettings(settings);*/
 
             DocumentReference userRef = db.collection(getString(R.string.collection_users))
                     .document(firebaseUser.getUid());
@@ -180,6 +180,7 @@ public class LoginActivity extends AppCompatActivity implements
             Log.d(TAG, "onAuthStateChanged:signed_out");
         }
     }
+
     @Override
     public void onStart() {
         super.onStart();

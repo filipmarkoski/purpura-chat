@@ -17,7 +17,7 @@ import com.purpura.googlemaps2018.models.UserSetting;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
 
-public class UserRecyclerAdapter extends RecyclerView.Adapter<UserRecyclerAdapter.ViewHolder>{
+public class UserRecyclerAdapter extends RecyclerView.Adapter<UserRecyclerAdapter.ViewHolder> {
 
     private ArrayList<User> mUsers = new ArrayList<>();
     private UserListRecyclerClickListener mClickListener;
@@ -37,15 +37,14 @@ public class UserRecyclerAdapter extends RecyclerView.Adapter<UserRecyclerAdapte
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.layout_user_list_item, parent, false);
-        final ViewHolder holder = new ViewHolder(view, mClickListener);
-        return holder;
+        return new ViewHolder(view, mClickListener);
     }
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
 
-        ((ViewHolder)holder).username.setText(mUsers.get(position).getUsername());
-        ((ViewHolder)holder).email.setText(mUsers.get(position).getEmail());
+        ((ViewHolder) holder).username.setText(mUsers.get(position).getUsername());
+        ((ViewHolder) holder).email.setText(mUsers.get(position).getEmail());
     }
 
     @Override
@@ -53,9 +52,7 @@ public class UserRecyclerAdapter extends RecyclerView.Adapter<UserRecyclerAdapte
         return mUsers.size();
     }
 
-    public class ViewHolder extends RecyclerView.ViewHolder implements
-            View.OnClickListener
-    {
+    public class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
         TextView username, email;
         UserListRecyclerClickListener mClickListener;
 
@@ -75,7 +72,7 @@ public class UserRecyclerAdapter extends RecyclerView.Adapter<UserRecyclerAdapte
         }
     }
 
-    public interface UserListRecyclerClickListener{
+    public interface UserListRecyclerClickListener {
         void onUserClicked(int position);
     }
 }

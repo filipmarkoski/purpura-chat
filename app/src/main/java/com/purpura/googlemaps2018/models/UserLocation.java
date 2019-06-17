@@ -2,7 +2,7 @@ package com.purpura.googlemaps2018.models;
 
 import android.os.Parcel;
 import android.os.Parcelable;
-
+import android.support.annotation.NonNull;
 import com.google.firebase.firestore.GeoPoint;
 
 import java.util.Date;
@@ -63,6 +63,7 @@ public class UserLocation implements Parcelable{
         this.timestamp = timestamp;
     }
 
+    @NonNull
     @Override
     public String toString() {
         return "UserLocation{" +

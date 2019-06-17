@@ -36,6 +36,7 @@
     <string name="intent_user_list">intent_user_list</string>
     <string name="intent_user_locations">intent_user_locations</string>
     <string name="intent_location">intent_location</string>
+    <string name="intent_filtered_chat_messages">intent_filtered_chat_messages</string>
 
     <!-- Service and Broadcasts -->
     <string name="gps_location">gps_location</string>
@@ -44,6 +45,8 @@
     <!-- Fragments Names -->
     <string name="fragment_user_list">User List</string>
     <string name="fragment_image_list">Image List</string>
+    <string name="fragment_add_user_to_chatroom">Add_user_to_chatroom</string>
+    <string name="fragment_filtered_chat_messages">Filtered Chat Messages List</string>
 
     <!-- Other Strings -->
     <string name="action_create_chatroom">Create Chatroom</string>
@@ -60,6 +63,14 @@
     <string name="location_disabled">Disabled</string>
     <string name="location_enabled">Enabled</string>
     <string name="share_location">Share location</string>
+    <string name="enter_message_hint">Enter message…</string>
+    <string name="rename_chatroom">Rename Chatroom</string>
+    <string name="delete_chatroom">Delete Chatroom</string>
+    <string name="search_chatroom">Search Chatroom</string>
+    <string name="action_enable_nearby">See nearby chatrooms</string>
 
+    <string name="default_notification_channel_id" translatable="false">fcm_default_channel</string>
+    <string name="fcm_message">FCM Message</string>
+    <string name="msg_token_fmt" translatable="false">InstanceID Token: %s</string>
 
 </resources>

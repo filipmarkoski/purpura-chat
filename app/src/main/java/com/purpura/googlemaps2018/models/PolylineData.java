@@ -1,5 +1,7 @@
 package com.purpura.googlemaps2018.models;
 
+import android.support.annotation.NonNull;
+
 import com.google.android.gms.maps.model.Polyline;
 import com.google.maps.model.DirectionsLeg;
 
@@ -29,6 +31,7 @@ public class PolylineData {
         this.leg = leg;
     }
 
+    @NonNull
     @Override
     public String toString() {
         return "PolylineData{" +

@@ -11,4 +11,11 @@
         android:id="@+id/action_sign_out"
         android:title="@string/action_sign_out"
         app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_enable_nearby"
+        android:title="@string/action_enable_nearby"
+        app:showAsAction="always"
+        android:actionLayout="@layout/switch_layout" />
+
 </menu>

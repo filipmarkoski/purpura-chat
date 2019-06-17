@@ -3,6 +3,7 @@ package com.purpura.googlemaps2018.ui;
 import android.content.Context;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
@@ -23,14 +24,12 @@ import java.util.ArrayList;
 
 import static android.support.constraint.Constraints.TAG;
 
-public class AddUserToChatFragment extends Fragment implements
-        View.OnClickListener,
-        UserRecyclerAdapter.UserListRecyclerClickListener {
+public class AddUserToChatFragment extends Fragment implements View.OnClickListener, UserRecyclerAdapter.UserListRecyclerClickListener {
+
     private OnUserSelectedListener onUserSelectedListener;
     private RecyclerView mUserListRecyclerView;
     private UserRecyclerAdapter mUserRecyclerAdapter;
     private ArrayList<User> mUserList = new ArrayList<>();
-    private FirebaseFirestore mDb;
 
     public static AddUserToChatFragment newInstance() {
         return new AddUserToChatFragment();

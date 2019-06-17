@@ -1,8 +1,6 @@
 package com.purpura.googlemaps2018.adapters;
 
 import android.content.Context;
-import android.graphics.Bitmap;
-import android.os.AsyncTask;
 import android.support.annotation.NonNull;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.RecyclerView;
@@ -12,58 +10,56 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.purpura.googlemaps2018.R;
 import com.purpura.googlemaps2018.models.ChatMessage;
 import com.purpura.googlemaps2018.models.User;
-import com.purpura.googlemaps2018.ui.ChatroomActivity;
 import com.squareup.picasso.Picasso;
 
-import java.io.IOException;
-import java.util.ArrayList;
+import java.util.List;
 
-public class ChatMessageRecyclerAdapter extends RecyclerView.Adapter<ChatMessageRecyclerAdapter.ViewHolder> {
+public class FilteredChatMessageRecyclerAdapter extends RecyclerView.Adapter<FilteredChatMessageRecyclerAdapter.ViewHolder> {
 
-    private static final String TAG = "ChatMessageRecyclerAdap";
-
-    private ArrayList<ChatMessage> mMessages = new ArrayList<>();
+    private static final String TAG = "FilteredChatMessageRecy";
 
     private Context mContext;
+    private List<ChatMessage> filteredChatMessages;
+    private FilteredChatMessagesRecyclerClickListener filteredChatMessagesRecyclerClickListener;
 
-    public ChatMessageRecyclerAdapter(Context context, ArrayList<ChatMessage> messages) {
-        this.mContext = context;
-        this.mMessages = messages;
+    public FilteredChatMessageRecyclerAdapter(Context mContext, List<ChatMessage> messages, FilteredChatMessagesRecyclerClickListener filteredChatMessagesRecyclerClickListener) {
+        this.mContext = mContext;
+        this.filteredChatMessages = messages;
+        this.filteredChatMessagesRecyclerClickListener = filteredChatMessagesRecyclerClickListener;
     }
 
     @NonNull
     @Override
-    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+    public FilteredChatMessageRecyclerAdapter.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.layout_chat_message_list_item_other, parent, false);
-        return new ViewHolder(view);
+        return new FilteredChatMessageRecyclerAdapter.ViewHolder(view, filteredChatMessagesRecyclerClickListener);
     }
 
     @Override
-    public void onBindViewHolder(@NonNull final ViewHolder holder, final int position) {
+    public void onBindViewHolder(@NonNull final FilteredChatMessageRecyclerAdapter.ViewHolder holder, final int position) {
         Log.d(TAG, "onBindViewHolder: ");
-        ChatMessage chatMessage = mMessages.get(position);
+        ChatMessage chatMessage = filteredChatMessages.get(position);
         User user = chatMessage.getUser();
 
-        if (FirebaseAuth.getInstance().getUid().equals(user.getUser_id())) {
-            ((ViewHolder) holder).username.setTextColor(ContextCompat.getColor(mContext, R.color.green1));
+        if (FirebaseAuth.getInstance().getUid() != null && FirebaseAuth.getInstance().getUid().equals(user.getUser_id())) {
+            holder.username.setTextColor(ContextCompat.getColor(mContext, R.color.green1));
         } else {
-            ((ViewHolder) holder).username.setTextColor(ContextCompat.getColor(mContext, R.color.blue2));
+            holder.username.setTextColor(ContextCompat.getColor(mContext, R.color.blue2));
         }
 
-        ((ViewHolder) holder).username.setText(user.getUsername());
+        holder.username.setText(user.getUsername());
 
         if (chatMessage.hasMessage()) {
             Log.d(TAG, "onBindViewHolder: chatMessage.hasMessage=true");
-            ((ViewHolder) holder).message.setText(chatMessage.getMessage());
+            holder.message.setText(chatMessage.getMessage());
         } else {
             Log.d(TAG, "onBindViewHolder: chatMessage.hasMessage=false");
-            ((ViewHolder) holder).message.setVisibility(View.GONE);
+            holder.message.setVisibility(View.GONE);
         }
 
         if (chatMessage.hasImageUrl()) {
@@ -94,18 +90,29 @@ public class ChatMessageRecyclerAdapter extends RecyclerView.Adapter<ChatMessage
 
     @Override
     public int getItemCount() {
-        return mMessages.size();
+        return filteredChatMessages.size();
     }
 
-    public final static class ViewHolder extends RecyclerView.ViewHolder {
+    public final static class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
         TextView message, username;
         ImageView image;
 
-        public ViewHolder(View itemView) {
+        FilteredChatMessagesRecyclerClickListener filteredChatMessagesRecyclerClickListener;
+
+        public ViewHolder(View itemView, FilteredChatMessagesRecyclerClickListener filteredChatMessagesRecyclerClickListener) {
             super(itemView);
             this.message = itemView.findViewById(R.id.chat_message_message);
             this.username = itemView.findViewById(R.id.chat_message_username);
             this.image = itemView.findViewById(R.id.chat_message_image);
+
+            this.filteredChatMessagesRecyclerClickListener = filteredChatMessagesRecyclerClickListener;
+
+            itemView.setOnClickListener(this);
+        }
+
+        @Override
+        public void onClick(View v) {
+            filteredChatMessagesRecyclerClickListener.onChatMessageClicked(getAdapterPosition());
         }
     }
 

@@ -2,6 +2,7 @@ package com.purpura.googlemaps2018.models;
 
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.support.annotation.NonNull;
 
 import java.util.Objects;
 
@@ -11,6 +12,31 @@ public class User implements Parcelable {
     private String user_id;
     private String username;
     private String avatar;
+
+    private String firstName;
+    private String lastName;
+    private int age;
+    private String biography;
+    private Boolean seeNearbyEnabled;
+
+    public User(String email, String user_id, String username, String avatar) {
+        this.email = email;
+        this.user_id = user_id;
+        this.username = username;
+        this.avatar = avatar;
+        this.seeNearbyEnabled = false;
+    }
+
+    public User() {
+        this.seeNearbyEnabled = false;
+    }
+
+    protected User(Parcel in) {
+        email = in.readString();
+        user_id = in.readString();
+        username = in.readString();
+        avatar = in.readString();
+    }
 
     @Override
     public boolean equals(Object o) {
@@ -26,23 +52,6 @@ public class User implements Parcelable {
         return Objects.hash(getEmail(), getUser_id());
     }
 
-    public User(String email, String user_id, String username, String avatar) {
-        this.email = email;
-        this.user_id = user_id;
-        this.username = username;
-        this.avatar = avatar;
-    }
-
-    public User() {
-
-    }
-
-    protected User(Parcel in) {
-        email = in.readString();
-        user_id = in.readString();
-        username = in.readString();
-        avatar = in.readString();
-    }
 
     public static final Creator<User> CREATOR = new Creator<User>() {
         @Override
@@ -92,6 +101,21 @@ public class User implements Parcelable {
         this.username = username;
     }
 
+    public Boolean getSeeNearbyEnabled() {
+        return seeNearbyEnabled;
+    }
+
+    public void toggleSeeNearbyEnabled() {
+        if (seeNearbyEnabled != null) {
+            seeNearbyEnabled = !seeNearbyEnabled;
+        }
+    }
+
+    public void setSeeNearbyEnabled(Boolean seeNearbyEnabled) {
+        this.seeNearbyEnabled = seeNearbyEnabled;
+    }
+
+    @NonNull
     @Override
     public String toString() {
         return "User{" +

@@ -15,7 +15,7 @@ import com.purpura.googlemaps2018.R;
 
 import java.util.ArrayList;
 
-public class ImageListRecyclerAdapter extends RecyclerView.Adapter<ImageListRecyclerAdapter.ViewHolder>{
+public class ImageListRecyclerAdapter extends RecyclerView.Adapter<ImageListRecyclerAdapter.ViewHolder> {
 
     private ArrayList<Integer> mImages = new ArrayList<>();
     private ImageListRecyclerClickListener mImageListRecyclerClickListener;
@@ -31,8 +31,7 @@ public class ImageListRecyclerAdapter extends RecyclerView.Adapter<ImageListRecy
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.layout_image_list_item, parent, false);
-        final ViewHolder holder = new ViewHolder(view, mImageListRecyclerClickListener);
-        return holder;
+        return new ViewHolder(view, mImageListRecyclerClickListener);
     }
 
     @Override
@@ -45,7 +44,7 @@ public class ImageListRecyclerAdapter extends RecyclerView.Adapter<ImageListRecy
         Glide.with(mContext)
                 .setDefaultRequestOptions(requestOptions)
                 .load(mImages.get(position))
-                .into(((ViewHolder)holder).image);
+                .into(((ViewHolder) holder).image);
     }
 
     @Override
@@ -53,9 +52,7 @@ public class ImageListRecyclerAdapter extends RecyclerView.Adapter<ImageListRecy
         return mImages.size();
     }
 
-    public class ViewHolder extends RecyclerView.ViewHolder implements
-            View.OnClickListener
-    {
+    public class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
         ImageView image;
         ImageListRecyclerClickListener mClickListener;
 
@@ -72,7 +69,7 @@ public class ImageListRecyclerAdapter extends RecyclerView.Adapter<ImageListRecy
         }
     }
 
-    public interface ImageListRecyclerClickListener{
+    public interface ImageListRecyclerClickListener {
         void onImageSelected(int position);
     }
 }

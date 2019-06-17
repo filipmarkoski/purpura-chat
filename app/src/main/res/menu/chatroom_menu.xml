@@ -19,7 +19,23 @@
         app:showAsAction="never" />
 
     <item
-        android:id="@+id/action_add_user_to_chatroom"
+        android:id="@+id/action_chatroom_delete"
+        android:title="@string/delete_chatroom"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_chatroom_rename"
+        android:title="@string/rename_chatroom"
+        app:showAsAction="never" />
+
+
+    <item
+        android:id="@+id/action_chatroom_search"
+        android:title="@string/search_chatroom"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_chatroom_add_user"
         android:title="@string/add_user_to_chatroom"
         app:showAsAction="never" />
 
