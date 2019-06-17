@@ -58,7 +58,7 @@
     <string name="disable_location">Stop sharing your location</string>
     <string name="add_user_to_chatroom">Add user</string>
     <string name="intent_user_to_add">user_to_add_in_chatroom</string>
-    <string name="fragment_add_user_to_chatroom">Add_user_to_chatroom</string>
+
     <string name="location_sharing">Location sharing</string>
     <string name="location_disabled">Disabled</string>
     <string name="location_enabled">Enabled</string>

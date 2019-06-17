@@ -170,7 +170,7 @@ public class ChatroomActivity extends AppCompatActivity implements
             public void onClick(View v) {
                 Log.d(TAG, "(btnCamera) onClick: ");
                 Toast.makeText(chatroomActivity, "Opening camera...", Toast.LENGTH_SHORT).show();
-                if (checkCameraPermissionGranted()) {
+                if (true || checkCameraPermissionGranted()) {
                     getCameraImage();
                 }
             }
@@ -488,10 +488,10 @@ public class ChatroomActivity extends AppCompatActivity implements
                 .document(mChatroom.getChatroom_id())
                 .collection(getString(R.string.collection_chat_messages));
 
-        // get the last 1000 messages
+        // get the last 100 messages
         mChatMessageEventListener = messagesRef
                 .orderBy("timestamp", Query.Direction.DESCENDING)
-                .limit(1000L)
+                .limit(100L)
                 .addSnapshotListener(new EventListener<QuerySnapshot>() {
                     @Override
                     public void onEvent(@javax.annotation.Nullable QuerySnapshot queryDocumentSnapshots, @javax.annotation.Nullable FirebaseFirestoreException e) {
@@ -556,8 +556,7 @@ public class ChatroomActivity extends AppCompatActivity implements
                         clearMessage();
                         getChatMessages();
 
-                        // send notification message
-                        x();
+                        // TODO: use Firebase Messaging To Send A Notification Message
                     } else {
                         View parentLayout = findViewById(android.R.id.content);
                         Snackbar.make(parentLayout, "Something went wrong.", Snackbar.LENGTH_SHORT).show();
@@ -1363,42 +1362,4 @@ public class ChatroomActivity extends AppCompatActivity implements
         Toast.makeText(chatroomActivity, chatMessage.getMessage(), Toast.LENGTH_SHORT).show();
     }
 
-    /*
-     * Firebase Cloud Messaging Code
-     * */
-
-    private void x() {
-        if (FirebaseMessaging.getInstance().isAutoInitEnabled()) {
-            String userId = getCurrentUser().getUser_id();
-            @SuppressLint("SimpleDateFormat") String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-            String messageId = String.format("userId_%s_timestamp_%s", userId, timeStamp);
-
-            RemoteMessage remoteMessage = new RemoteMessage.Builder(userId)
-                    .setMessageId(messageId)
-                    .addData("message", "text")
-                    .build();
-
-            FirebaseMessaging.getInstance()
-                    .send(remoteMessage);
-
-        } else {
-            FirebaseMessaging.getInstance().setAutoInitEnabled(true);
-        }
-        mChatroom.addUser(user);
-        joinChatroomRef.set(mChatroom).addOnCompleteListener(new OnCompleteListener<Void>() {
-            @Override
-            public void onComplete(@NonNull Task<Void> task) {
-                if (task.isSuccessful()) {
-                    //getSupportFragmentManager().popBackStack();
-                    ChatroomActivity.super.onBackPressed();
-                    restartListFragmentIfVisible();
-                } else {
-                    View parentLayout = findViewById(android.R.id.content);
-                    Snackbar.make(parentLayout, "Something went wrong.", Snackbar.LENGTH_SHORT).show();
-                }
-            }
-        });
-
-
-    }
 }

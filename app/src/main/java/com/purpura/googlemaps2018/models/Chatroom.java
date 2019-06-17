@@ -66,12 +66,15 @@ public class Chatroom implements Parcelable {
         isPrivate = (Boolean) in.readValue(Boolean.class.getClassLoader());
         isShowingNearby = (Boolean) in.readValue(Boolean.class.getClassLoader());
         radiusInMeters = in.readFloat();
+        Double lat=null;
+        Double lon=null;
         if (isShowingNearby) {
-            Double lat = (Double) in.readValue(Double.class.getClassLoader());
-            Double lon = (Double) in.readValue(Double.class.getClassLoader());
-            geoPoint = new GeoPoint(lat, lon);
-        }
+            lat = (Double) in.readValue(Double.class.getClassLoader());
+            lon = (Double) in.readValue(Double.class.getClassLoader());
 
+        }
+        if(lat!=null&&lon!=null)
+        geoPoint = new GeoPoint(lat, lon);
     }
 
     public static final Creator<Chatroom> CREATOR = new Creator<Chatroom>() {
@@ -124,9 +127,12 @@ public class Chatroom implements Parcelable {
         dest.writeValue(isPrivate);
         dest.writeValue(isShowingNearby);
         dest.writeFloat(radiusInMeters);
-        if (isShowingNearby) {
+        if (isShowingNearby && geoPoint!=null) {
             dest.writeValue(geoPoint.getLatitude());
             dest.writeValue(geoPoint.getLongitude());
+        } else {
+            dest.writeValue(null);
+            dest.writeValue(null);
         }
 
     }
