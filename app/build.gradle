@@ -89,5 +89,7 @@ dependencies {
 
     // Circle ImageView
     implementation 'de.hdodenhof:circleimageview:2.2.0'
+    implementation 'com.google.firebase:firebase-messaging:18.0.0'
+    implementation 'android.arch.work:work-runtime:1.0.1'
 }
 apply plugin: 'com.google.gms.google-services'

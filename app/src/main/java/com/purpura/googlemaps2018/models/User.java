@@ -13,15 +13,22 @@ public class User implements Parcelable {
     private String username;
     private String avatar;
 
+    private String firstName;
+    private String lastName;
+    private int age;
+    private String biography;
+    private Boolean seeNearbyEnabled;
+
     public User(String email, String user_id, String username, String avatar) {
         this.email = email;
         this.user_id = user_id;
         this.username = username;
         this.avatar = avatar;
+        this.seeNearbyEnabled = false;
     }
 
     public User() {
-
+        this.seeNearbyEnabled = false;
     }
 
     protected User(Parcel in) {
@@ -92,6 +99,20 @@ public class User implements Parcelable {
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    public Boolean getSeeNearbyEnabled() {
+        return seeNearbyEnabled;
+    }
+
+    public void toggleSeeNearbyEnabled() {
+        if (seeNearbyEnabled != null) {
+            seeNearbyEnabled = !seeNearbyEnabled;
+        }
+    }
+
+    public void setSeeNearbyEnabled(Boolean seeNearbyEnabled) {
+        this.seeNearbyEnabled = seeNearbyEnabled;
     }
 
     @NonNull

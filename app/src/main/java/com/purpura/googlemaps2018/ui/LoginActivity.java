@@ -88,10 +88,10 @@ public class LoginActivity extends AppCompatActivity implements
                     Toast.makeText(LoginActivity.this, "Authenticated with: " + user.getEmail(), Toast.LENGTH_SHORT).show();
 
                     FirebaseFirestore db = FirebaseFirestore.getInstance();
-                    FirebaseFirestoreSettings settings = new FirebaseFirestoreSettings.Builder()
+                    /*FirebaseFirestoreSettings settings = new FirebaseFirestoreSettings.Builder()
                             .setTimestampsInSnapshotsEnabled(true)
                             .build();
-                    db.setFirestoreSettings(settings);
+                    db.setFirestoreSettings(settings);*/
 
                     DocumentReference userRef = db.collection(getString(R.string.collection_users))
                             .document(user.getUid());

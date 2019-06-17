@@ -34,6 +34,8 @@ import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.CollectionReference;
@@ -46,6 +48,8 @@ import com.google.firebase.firestore.GeoPoint;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
+import com.google.firebase.iid.FirebaseInstanceId;
+import com.google.firebase.iid.InstanceIdResult;
 import com.purpura.googlemaps2018.Constants;
 import com.purpura.googlemaps2018.R;
 import com.purpura.googlemaps2018.UserClient;
@@ -76,6 +80,7 @@ public class MainActivity extends AppCompatActivity implements
         ChatroomRecyclerAdapter.ChatroomRecyclerClickListener {
 
     private static final String TAG = "MainActivity";
+    private final MainActivity mainActivity = this;
 
     //widgets
     private ProgressBar mProgressBar;
@@ -106,16 +111,16 @@ public class MainActivity extends AppCompatActivity implements
 
         initSupportActionBar();
         initChatroomRecyclerView();
+
+        getFirebaseInstanceIdToken();
     }
 
 
     private void startLocationService() {
         if (!isLocationServiceRunning()) {
-            Intent serviceIntent = new Intent(this, LocationService.class);
-//        this.startService(serviceIntent);
+            Intent serviceIntent = new Intent(mainActivity, LocationService.class);
 
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-
                 MainActivity.this.startForegroundService(serviceIntent);
             } else {
                 startService(serviceIntent);
@@ -136,9 +141,9 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     private void getUserDetails() {
-
         if (mUserLocation == null) {
             mUserLocation = new UserLocation();
+
             DocumentReference userRef = mDb.collection(getString(R.string.collection_users))
                     .document(FirebaseAuth.getInstance().getUid());
 
@@ -163,24 +168,49 @@ public class MainActivity extends AppCompatActivity implements
     private void getLastKnownLocation() {
         Log.d(TAG, "getLastKnownLocation: called.");
 
-
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             return;
         }
-        mFusedLocationClient.getLastLocation().addOnCompleteListener(new OnCompleteListener<android.location.Location>() {
-            @Override
-            public void onComplete(@NonNull Task<android.location.Location> task) {
-                if (task.isSuccessful() && task.getResult() != null) {
-                    Location location = task.getResult();
-                    GeoPoint geoPoint = new GeoPoint(location.getLatitude(), location.getLongitude());
-                    mUserLocation.setGeo_point(geoPoint);
-                    saveUserLocation();
-                    startLocationService();
-                }
-            }
-        });
+
+        mFusedLocationClient.getLastLocation()
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Log.e(TAG, "onFailure: ", e);
+                    }
+                })
+                .addOnSuccessListener(new OnSuccessListener<Location>() {
+                    @Override
+                    public void onSuccess(Location location) {
+                        if (location != null) {
+                            Log.d(TAG, "onSuccess: " + location.toString());
+                            Toast.makeText(mainActivity, location.toString(), Toast.LENGTH_SHORT).show();
+                        } else {
+                            Toast.makeText(mainActivity, "Location is null", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                })
+                .addOnCompleteListener(new OnCompleteListener<android.location.Location>() {
+                    @Override
+                    public void onComplete(@NonNull Task<android.location.Location> task) {
+
+                        Log.d(TAG, "onComplete: ");
+
+                        if (task.isSuccessful() && task.getResult() != null) {
+                            Location location = task.getResult();
+                            Toast.makeText(mainActivity, location.toString(), Toast.LENGTH_SHORT).show();
+
+                            GeoPoint geoPoint = new GeoPoint(location.getLatitude(), location.getLongitude());
+                            mUserLocation.setGeo_point(geoPoint);
+                            saveUserLocation();
+                            startLocationService();
+                            getChatrooms();
+                        }
+                    }
+                });
 
     }
+
 
     private void saveUserLocation() {
 
@@ -196,6 +226,25 @@ public class MainActivity extends AppCompatActivity implements
                         Log.d(TAG, "saveUserLocation: \ninserted user location into database." +
                                 "\n latitude: " + mUserLocation.getGeo_point().getLatitude() +
                                 "\n longitude: " + mUserLocation.getGeo_point().getLongitude());
+                    }
+                }
+            });
+        }
+    }
+
+    private void saveCurrentUser() {
+
+        if (currentUser != null) {
+            DocumentReference locationRef = mDb
+                    .collection(getString(R.string.collection_users))
+                    .document(FirebaseAuth.getInstance().getUid());
+
+            locationRef.set(currentUser).addOnCompleteListener(new OnCompleteListener<Void>() {
+                @Override
+                public void onComplete(@NonNull Task<Void> task) {
+                    if (task.isSuccessful()) {
+                        Log.d(TAG, "saveCurrentUser: user saved in db");
+                        getChatrooms();
                     }
                 }
             });
@@ -245,8 +294,9 @@ public class MainActivity extends AppCompatActivity implements
                 android.Manifest.permission.ACCESS_FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED) {
             mLocationPermissionGranted = true;
-            getChatrooms();
+
             getUserDetails();
+            // getChatrooms();
         } else {
             ActivityCompat.requestPermissions(this,
                     new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
@@ -333,8 +383,7 @@ public class MainActivity extends AppCompatActivity implements
 
     private void getChatrooms() {
 
-        CollectionReference chatroomsCollection = mDb
-                .collection(getString(R.string.collection_chatrooms));
+        CollectionReference chatroomsCollection = mDb.collection(getString(R.string.collection_chatrooms));
 
         mChatroomEventListener = chatroomsCollection.addSnapshotListener(new EventListener<QuerySnapshot>() {
             @Override
@@ -345,6 +394,7 @@ public class MainActivity extends AppCompatActivity implements
                     Log.e(TAG, "onEvent: Listen failed.", e);
                     return;
                 }
+
                 mChatrooms.clear();
                 mChatroomIds.clear();
 
@@ -352,19 +402,30 @@ public class MainActivity extends AppCompatActivity implements
                     for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
 
                         Chatroom chatroom = doc.toObject(Chatroom.class);
-                        String email = Objects.requireNonNull(FirebaseAuth.getInstance().getCurrentUser()).getEmail();
-                        if (chatroom.canAccess(email) && !mChatroomIds.contains(chatroom.getChatroom_id())) {
-                            mChatroomIds.add(chatroom.getChatroom_id());
-                            mChatrooms.add(chatroom);
-                        }
 
+                        if (FirebaseAuth.getInstance().getCurrentUser() != null && mUserLocation != null) {
+                            String email = FirebaseAuth.getInstance().getCurrentUser().getEmail();
+
+
+                            Boolean isPrivateSettings = chatroom.canAccess(email);
+                            Boolean isNearbySettings = chatroom.checkProximity(mUserLocation.getGeo_point()) && currentUser.getSeeNearbyEnabled();
+                            Boolean isAlreadyInList = mChatroomIds.contains(chatroom.getChatroom_id());
+
+                            if ((isPrivateSettings || isNearbySettings) && !isAlreadyInList) {
+                                mChatroomIds.add(chatroom.getChatroom_id());
+                                mChatrooms.add(chatroom);
+                            }
+                        }
                     }
+
                     Log.d(TAG, "onEvent: number of chatrooms: " + mChatrooms.size());
                     mChatroomRecyclerAdapter.notifyDataSetChanged();
                 }
 
             }
         });
+
+
     }
 
     private void buildNewChatroom(String chatroomName, Boolean isPrivate) {
@@ -373,6 +434,7 @@ public class MainActivity extends AppCompatActivity implements
         chatroom.setTitle(chatroomName);
         chatroom.setPrivate(isPrivate);
         chatroom.addUser(currentUser);
+
 
         DocumentReference newChatroomRef = mDb
                 .collection(getString(R.string.collection_chatrooms))
@@ -481,7 +543,6 @@ public class MainActivity extends AppCompatActivity implements
         super.onResume();
         if (checkMapServices()) {
             if (mLocationPermissionGranted) {
-
                 getUserDetails();
             } else {
                 getLocationPermission();
@@ -521,6 +582,11 @@ public class MainActivity extends AppCompatActivity implements
                 startActivity(new Intent(this, ProfileActivity.class));
                 return true;
             }
+            case R.id.action_enable_nearby: {
+                currentUser.toggleSeeNearbyEnabled();
+                saveCurrentUser();
+                return true;
+            }
             default: {
                 return super.onOptionsItemSelected(item);
             }
@@ -534,6 +600,29 @@ public class MainActivity extends AppCompatActivity implements
 
     private void hideDialog() {
         mProgressBar.setVisibility(View.GONE);
+    }
+
+    private void getFirebaseInstanceIdToken() {
+        FirebaseInstanceId.getInstance().getInstanceId()
+                .addOnCompleteListener(new OnCompleteListener<InstanceIdResult>() {
+                    @Override
+                    public void onComplete(@NonNull Task<InstanceIdResult> task) {
+                        if (!task.isSuccessful()) {
+                            Log.w(TAG, "getInstanceId failed", task.getException());
+                            return;
+                        }
+
+                        // Get new Instance ID token
+                        String token = task.getResult().getToken();
+
+
+                        // Log and toast
+                        String msg = getString(R.string.msg_token_fmt, token);
+                        Log.d(TAG, msg);
+                        Toast.makeText(MainActivity.this, msg, Toast.LENGTH_SHORT).show();
+                    }
+                });
+
     }
 
 

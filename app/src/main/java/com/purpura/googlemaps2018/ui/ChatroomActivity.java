@@ -54,6 +54,8 @@ import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
+import com.google.firebase.messaging.FirebaseMessaging;
+import com.google.firebase.messaging.RemoteMessage;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
@@ -178,6 +180,7 @@ public class ChatroomActivity extends AppCompatActivity implements
         mAuth = FirebaseAuth.getInstance();
         mStorageRef = FirebaseStorage.getInstance().getReference();
         mImagesFolderRef = mStorageRef.child("images");
+        FirebaseMessaging.getInstance().setAutoInitEnabled(true);
 
         getIncomingIntent();
         initChatroomRecyclerView();
@@ -442,7 +445,9 @@ public class ChatroomActivity extends AppCompatActivity implements
 
                 if (task.isSuccessful() && task.getResult() != null) {
                     if (task.getResult().toObject(UserLocation.class) != null) {
-                        mChatroom.getUsers().get(pos).setUserLocation(task.getResult().toObject(UserLocation.class));
+                        UserLocation userLocation = task.getResult().toObject(UserLocation.class);
+
+                        mChatroom.getUsers().get(pos).setUserLocation(userLocation);
                     }
                 }
             }
@@ -529,6 +534,9 @@ public class ChatroomActivity extends AppCompatActivity implements
                     if (task.isSuccessful()) {
                         clearMessage();
                         getChatMessages();
+
+                        // send notification message
+                        x();
                     } else {
                         View parentLayout = findViewById(android.R.id.content);
                         Snackbar.make(parentLayout, "Something went wrong.", Snackbar.LENGTH_SHORT).show();
@@ -728,18 +736,20 @@ public class ChatroomActivity extends AppCompatActivity implements
         super.onDestroy();
         Log.d(TAG, "onDestroy: ");
 
-        // find the currently joined chatroom
-        DocumentReference chatroomRef = mDb
-                .collection(getString(R.string.collection_chatrooms))
-                .document(mChatroom.getChatroom_id());
+        if (mChatroom != null) {
+            // find the currently joined chatroom
+            DocumentReference chatroomRef = mDb
+                    .collection(getString(R.string.collection_chatrooms))
+                    .document(mChatroom.getChatroom_id());
+            if (mChatroom.getUsers().isEmpty() && mChatroom.getPrivate()) {
+                chatroomRef.delete();
+            } else {
+                // You shouldn't have to store or update the chatroom.
+                // It should already be stored piece-by-piece
 
+                chatroomRef.set(mChatroom);
+            }
 
-        if (mChatroom.getUsers().isEmpty() && mChatroom.getPrivate()) {
-            chatroomRef.delete();
-        } else {
-            // You shouldn't have to store or update the chatroom.
-            // It should already be stored piece-by-piece
-            chatroomRef.set(mChatroom);
         }
 
         // remove ChatMessage listener
@@ -890,7 +900,8 @@ public class ChatroomActivity extends AppCompatActivity implements
                 if (!enteredKeyword.isEmpty() && enteredKeyword.equals(deleteKeyword)) {
                     deleteChatroom(mChatroom);
                 } else {
-                    Toast.makeText(chatroomActivity, "Enter new chatroom name", Toast.LENGTH_SHORT).show();
+                    String message = String.format("You didn't enter '%s' correctly", deleteKeyword);
+                    Toast.makeText(chatroomActivity, message, Toast.LENGTH_SHORT).show();
                 }
             }
         });
@@ -989,22 +1000,27 @@ public class ChatroomActivity extends AppCompatActivity implements
                 .collection(getString(R.string.collection_chatrooms))
                 .document(chatroom.getChatroom_id());
 
+        // AppCompatActivity appCompatActivity = super;
+
         joinedChatroomRef.delete().addOnCompleteListener(new OnCompleteListener<Void>() {
             @Override
             public void onComplete(@NonNull Task<Void> task) {
                 String message = String.format("Chatroom '%s' deleted", chatroom.getTitle());
+                mChatroom = null;
                 Toast.makeText(chatroomActivity, message, Toast.LENGTH_SHORT).show();
+               /* if (getSupportFragmentManager().getBackStackEntryCount() > 0) {
+                    appCompatActivity.onBackPressed();
+                }*/
+                // TODO test delete
+                finish();
             }
         });
 
         /*Intent mainActivityIntent = new Intent(chatroomActivity, MainActivity.class);
         startActivity(mainActivityIntent);*/
 
+        // remove back to delete chatroom
 
-        if (getSupportFragmentManager().getBackStackEntryCount() > 0) {
-            super.onBackPressed();
-        }
-        finish();
 
     }
 
@@ -1288,5 +1304,28 @@ public class ChatroomActivity extends AppCompatActivity implements
     @Override
     public void findSelectChatMessageInChatroom(ChatMessage chatMessage) {
         Toast.makeText(chatroomActivity, chatMessage.getMessage(), Toast.LENGTH_SHORT).show();
+    }
+
+    /*
+     * Firebase Cloud Messaging Code
+     * */
+
+    private void x() {
+        if (FirebaseMessaging.getInstance().isAutoInitEnabled()) {
+            String userId = getCurrentUser().getUser_id();
+            @SuppressLint("SimpleDateFormat") String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+            String messageId = String.format("userId_%s_timestamp_%s", userId, timeStamp);
+
+            RemoteMessage remoteMessage = new RemoteMessage.Builder(userId)
+                    .setMessageId(messageId)
+                    .addData("message", "text")
+                    .build();
+
+            FirebaseMessaging.getInstance()
+                    .send(remoteMessage);
+
+        } else {
+            FirebaseMessaging.getInstance().setAutoInitEnabled(true);
+        }
     }
 }
