@@ -5,7 +5,7 @@ import com.google.firebase.firestore.ServerTimestamp;
 import java.util.Date;
 
 public class ChatMessage {
-
+    //x
     private User user;
     private String message;
     private String message_id;
