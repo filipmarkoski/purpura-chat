@@ -645,7 +645,7 @@ public class MainActivity extends AppCompatActivity implements
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 Log.d(TAG, "onCheckedChanged: ");
-                Toast.makeText(mainActivity, isChecked + "'d", Toast.LENGTH_SHORT).show();
+                Toast.makeText(mainActivity, "Near By=" + isChecked, Toast.LENGTH_SHORT).show();
                 getCurrentUser().toggleSeeNearbyEnabled();
                 saveCurrentUser(); // saveCurrentUser() calls getChatrooms when it has finished saving the current user
             }
