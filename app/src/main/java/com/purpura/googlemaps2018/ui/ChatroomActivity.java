@@ -100,11 +100,6 @@ public class ChatroomActivity extends AppCompatActivity implements
     private FirebaseAuth mAuth;
     private StorageReference mStorageRef;
     private StorageReference mImagesFolderRef;
-
-    // Image (the same variables are used for Gallery-related and Camera-related tasks)
-    /*private Bitmap galleryImage = null;
-    private String galleryImageDownloadURL = null;*/
-
     //widgets
     private Chatroom mChatroom;
     private EditText editTextMessage;
@@ -115,7 +110,7 @@ public class ChatroomActivity extends AppCompatActivity implements
     private ChatMessageRecyclerAdapter mChatMessageRecyclerAdapter;
     private ArrayList<ChatMessage> mMessages = new ArrayList<>();
     private Set<String> mMessageIds = new HashSet<>();
-    Switch locationSwitch;
+
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
@@ -176,8 +171,8 @@ public class ChatroomActivity extends AppCompatActivity implements
 
         // Initialize Firebase-related
         mDb = FirebaseFirestore.getInstance();
-        locationSwitch = (Switch) findViewById(R.id.location_switch);
-        /*locationSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+        /*locationSwitch = (Switch) findViewById(R.id.location_switch);
+         *//*locationSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
                     enableShareLocationInChatRoom();
@@ -185,7 +180,7 @@ public class ChatroomActivity extends AppCompatActivity implements
                     disableShareLocationInChatRoom();
                 }
             }
-        });*/
+        });*//*
         locationSwitch.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -195,7 +190,7 @@ public class ChatroomActivity extends AppCompatActivity implements
                     disableShareLocationInChatRoom();
                 }
             }
-        });
+        });*/
         mAuth = FirebaseAuth.getInstance();
         mStorageRef = FirebaseStorage.getInstance().getReference();
         mImagesFolderRef = mStorageRef.child("images");

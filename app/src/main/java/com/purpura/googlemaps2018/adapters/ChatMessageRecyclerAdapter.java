@@ -56,7 +56,9 @@ public class ChatMessageRecyclerAdapter extends RecyclerView.Adapter<ChatMessage
         User user = chatMessage.getUser();
 
         if (FirebaseAuth.getInstance().getUid().equals(user.getUser_id())) {
+            // current user
             ((ViewHolder) holder).username.setTextColor(ContextCompat.getColor(mContext, R.color.green1));
+
         } else {
             ((ViewHolder) holder).username.setTextColor(ContextCompat.getColor(mContext, R.color.blue2));
         }

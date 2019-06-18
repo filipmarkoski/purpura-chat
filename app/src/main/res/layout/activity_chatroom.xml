@@ -6,18 +6,6 @@
     android:layout_height="match_parent"
     android:background="@color/White">
 
-    <Switch
-        android:id="@+id/location_switch"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentEnd="true"
-        android:checked="false"
-        android:gravity="center"
-        android:text="@string/share_location"
-        android:textOff="@string/location_disabled"
-        android:textOn="@string/location_enabled" />
-    />
-
     <RelativeLayout
 
         android:layout_width="match_parent"
@@ -34,7 +22,6 @@
 
     </RelativeLayout>
 
-
     <android.support.constraint.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="40dp"
@@ -44,7 +31,7 @@
 
         <android.support.text.emoji.widget.EmojiAppCompatEditText
             android:id="@+id/input_message"
-            android:layout_width="205dp"
+            android:layout_width="fill_parent"
             android:layout_height="match_parent"
             android:layout_marginStart="8dp"
             android:background="@null"
@@ -52,6 +39,7 @@
             android:hint="@string/enter_message_hint"
             android:textColor="@color/Black"
             android:textSize="14sp"
+            app:layout_constraintRight_toLeftOf="@+id/btnCamera"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
@@ -59,31 +47,33 @@
             android:id="@+id/btnCamera"
             android:layout_width="40dp"
             android:layout_height="40dp"
+            android:padding="5dp"
             android:layout_marginEnd="8dp"
-            android:src="@drawable/ic_full_screen_black_24dp"
-            app:layout_constraintLeft_toRightOf="@id/input_message"
+            android:src="@drawable/ic_menu_camera"
+            app:layout_constraintRight_toLeftOf="@id/btnGallery"
             app:layout_constraintTop_toTopOf="parent" />
 
         <ImageView
             android:id="@+id/btnGallery"
             android:layout_width="40dp"
             android:layout_height="40dp"
+            android:padding="5dp"
             android:layout_marginEnd="8dp"
-            android:src="@drawable/theme_button"
-            app:layout_constraintLeft_toRightOf="@id/btnCamera"
+            android:src="@drawable/ic_menu_gallery"
+            app:layout_constraintRight_toLeftOf="@id/checkmark"
             app:layout_constraintTop_toTopOf="parent" />
 
         <ImageView
             android:id="@+id/checkmark"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:src="@drawable/ic_check_green_24dp"
-            app:layout_constraintLeft_toRightOf="@id/btnGallery"
+            android:padding="5dp"
+            android:src="@drawable/ic_menu_send"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
 
     </android.support.constraint.ConstraintLayout>
-
 
     <FrameLayout
         android:id="@+id/chatroom_fragment_container"
