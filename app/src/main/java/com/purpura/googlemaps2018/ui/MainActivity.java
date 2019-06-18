@@ -1,6 +1,7 @@
 package com.purpura.googlemaps2018.ui;
 
 import android.Manifest;
+import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -8,6 +9,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
@@ -15,10 +17,12 @@ import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.text.InputType;
+import android.support.v7.widget.SwitchCompat;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -27,6 +31,7 @@ import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ProgressBar;
+import android.widget.Switch;
 import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -51,6 +56,12 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.firebase.iid.InstanceIdResult;
+import com.mikepenz.materialdrawer.Drawer;
+import com.mikepenz.materialdrawer.DrawerBuilder;
+import com.mikepenz.materialdrawer.model.DividerDrawerItem;
+import com.mikepenz.materialdrawer.model.PrimaryDrawerItem;
+import com.mikepenz.materialdrawer.model.SecondaryDrawerItem;
+import com.mikepenz.materialdrawer.model.interfaces.IDrawerItem;
 import com.purpura.googlemaps2018.Constants;
 import com.purpura.googlemaps2018.R;
 import com.purpura.googlemaps2018.UserClient;
@@ -65,13 +76,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 import javax.annotation.Nullable;
-
-import static com.purpura.googlemaps2018.Constants.ERROR_DIALOG_REQUEST;
-import static com.purpura.googlemaps2018.Constants.PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION;
-import static com.purpura.googlemaps2018.Constants.PERMISSIONS_REQUEST_ENABLE_GPS;
-
-// Image-related permissions
-
 
 public class MainActivity extends AppCompatActivity implements
         View.OnClickListener,
@@ -90,15 +94,14 @@ public class MainActivity extends AppCompatActivity implements
     private RecyclerView mChatroomRecyclerView;
     private ListenerRegistration mChatroomEventListener;
     private FirebaseFirestore mDb;
-    private boolean mLocationPermissionGranted = false;
     private FusedLocationProviderClient mFusedLocationClient;
     private UserLocation mUserLocation;
-    private User currentUser;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
         mProgressBar = findViewById(R.id.progressBar);
         mChatroomRecyclerView = findViewById(R.id.chatrooms_recycler_view);
 
@@ -110,20 +113,104 @@ public class MainActivity extends AppCompatActivity implements
         initSupportActionBar();
         initChatroomRecyclerView();
 
-        getFirebaseInstanceIdToken();
+
+        /*
+         * Implemented using:
+         * https://github.com/mikepenz/MaterialDrawer/tree/v6.0.9
+         * */
+
+        PrimaryDrawerItem item1 = new PrimaryDrawerItem().withIdentifier(1).withName(R.string.menu_home);
+        SecondaryDrawerItem item2 = new SecondaryDrawerItem().withIdentifier(2).withName(R.string.menu_tools);
+
+        //create the drawer and remember the `Drawer` result object
+        Drawer result = new DrawerBuilder()
+                .withActivity(this)
+                .addDrawerItems(
+                        item1,
+                        new DividerDrawerItem(),
+                        item2
+                )
+                .withOnDrawerItemClickListener(new Drawer.OnDrawerItemClickListener() {
+                    @Override
+                    public boolean onItemClick(View view, int position, IDrawerItem drawerItem) {
+                        // do something with the clicked item :D
+                        return false;
+                    }
+                })
+                .build();
+
+
+        // TODO: Firebase Messaging Service Instance Token
+        // getFirebaseInstanceIdToken();
     }
 
+    private void initSupportActionBar() {
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setTitle("Chatrooms");
+        }
+    }
+
+    private void initChatroomRecyclerView() {
+        mChatroomRecyclerAdapter = new ChatroomRecyclerAdapter(mChatrooms, this);
+        mChatroomRecyclerView.setAdapter(mChatroomRecyclerAdapter);
+        mChatroomRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+    }
+
+    private Integer count = 0;
+    boolean onResumeCalled = false;
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Configuration config = new Configuration();
+        config.setToDefaults();
+        Log.d("Config", config.toString());
+
+        if (!onResumeCalled) {
+            Log.d(TAG, "onResume: ");
+            onResumeCalled = !onResumeCalled;
+
+            if (checkMapServices() && checkAcesssFineLocationPermissionGranted()) {
+                // Toast.makeText(mainActivity, "Fetching current user's details", Toast.LENGTH_SHORT).show();
+                getUserDetails();
+
+
+                if (count == 0 && getCurrentUser() != null) {
+                    if (getCurrentUser().getSeeNearbyEnabled() != null) {
+                        enableNearBySwitch.setChecked(getCurrentUser().getSeeNearbyEnabled());
+                        mainActivity.count += 1;
+                    }
+                }
+            }
+
+        }
+    }
+
+    private User getCurrentUser() {
+        return ((UserClient) (getApplicationContext())).getUser();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (mChatroomEventListener != null) {
+            mChatroomEventListener.remove();
+        }
+    }
 
     private void startLocationService() {
         if (!isLocationServiceRunning()) {
             Intent serviceIntent = new Intent(mainActivity, LocationService.class);
 
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                MainActivity.this.startForegroundService(serviceIntent);
+                if (checkForegroundServicePermissionGranted()) {
+                    MainActivity.this.startForegroundService(serviceIntent);
+                }
             } else {
                 startService(serviceIntent);
             }
         }
+
     }
 
     private boolean isLocationServiceRunning() {
@@ -167,11 +254,15 @@ public class MainActivity extends AppCompatActivity implements
                         public void onComplete(@NonNull Task<DocumentSnapshot> task) {
                             if (task.isSuccessful() && task.getResult() != null) {
                                 Log.d(TAG, "onComplete: successfully set the user client.");
-                                currentUser = task.getResult().toObject(User.class);
-                                Toast.makeText(mainActivity, currentUser != null ? "Welcome, " + currentUser.getUsername() : null, Toast.LENGTH_SHORT).show();
-                                mUserLocation.setUser(currentUser);
-                                ((UserClient) (getApplicationContext())).setUser(currentUser);
+                                User user = task.getResult().toObject(User.class);
+
+                                ((UserClient) (getApplicationContext())).setUser(user);
+                                mUserLocation.setUser(user);
+
+                                Toast.makeText(mainActivity, user != null ? "Welcome, " + user.getUsername() : null, Toast.LENGTH_SHORT).show();
+
                                 getLastKnownLocation();
+                                getChatrooms();
                             }
                         }
                     });
@@ -184,7 +275,15 @@ public class MainActivity extends AppCompatActivity implements
     private void getLastKnownLocation() {
         Log.d(TAG, "getLastKnownLocation: called.");
 
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED /*&&
+            ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED*/) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
             return;
         }
 
@@ -200,9 +299,9 @@ public class MainActivity extends AppCompatActivity implements
                     public void onSuccess(Location location) {
                         if (location != null) {
                             Log.d(TAG, "onSuccess: " + location.toString());
-                            Toast.makeText(mainActivity, location.toString(), Toast.LENGTH_SHORT).show();
+                            // Toast.makeText(mainActivity, location.toString(), Toast.LENGTH_SHORT).show();
                         } else {
-                            Toast.makeText(mainActivity, "Location is null", Toast.LENGTH_SHORT).show();
+                            // Toast.makeText(mainActivity, "Location is null", Toast.LENGTH_SHORT).show();
                         }
                     }
                 })
@@ -214,16 +313,16 @@ public class MainActivity extends AppCompatActivity implements
 
                         if (task.isSuccessful() && task.getResult() != null) {
                             Location location = task.getResult();
-                            Toast.makeText(mainActivity, location.toString(), Toast.LENGTH_SHORT).show();
-
+                            /*Toast.makeText(mainActivity, location.toString(), Toast.LENGTH_SHORT).show();*/
                             GeoPoint geoPoint = new GeoPoint(location.getLatitude(), location.getLongitude());
                             mUserLocation.setGeo_point(geoPoint);
                             saveUserLocation();
                             startLocationService();
-                            getChatrooms();
+                            // getChatrooms();
                         }
                     }
                 });
+
 
     }
 
@@ -249,45 +348,63 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     private void saveCurrentUser() {
+        User user = getCurrentUser();
 
-        if (currentUser != null) {
-            DocumentReference locationRef = mDb
+        if (user != null) {
+            DocumentReference userRef = mDb
                     .collection(getString(R.string.collection_users))
                     .document(FirebaseAuth.getInstance().getUid());
 
-            locationRef.set(currentUser).addOnCompleteListener(new OnCompleteListener<Void>() {
-                @Override
-                public void onComplete(@NonNull Task<Void> task) {
-                    if (task.isSuccessful()) {
-                        Log.d(TAG, "saveCurrentUser: user saved in db");
-                        getChatrooms();
-                    }
-                }
-            });
+            userRef.set(user)
+                    .addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception e) {
+                            Toast.makeText(mainActivity, "Saving current user failed", Toast.LENGTH_SHORT).show();
+                        }
+                    })
+                    .addOnSuccessListener(new OnSuccessListener<Void>() {
+                        @Override
+                        public void onSuccess(Void aVoid) {
+                            Toast.makeText(mainActivity, "Saving current user succeeded", Toast.LENGTH_SHORT).show();
+                        }
+                    })
+                    .addOnCompleteListener(new OnCompleteListener<Void>() {
+                        @Override
+                        public void onComplete(@NonNull Task<Void> task) {
+                            Toast.makeText(mainActivity, "Saving current user completed", Toast.LENGTH_SHORT).show();
+                            if (task.isSuccessful()) {
+                                Log.d(TAG, "saveCurrentUser: user saved in db");
+                                Toast.makeText(mainActivity, "Fetching chatrooms for stored current user", Toast.LENGTH_SHORT).show();
+                                getChatrooms();
+                            }
+                        }
+                    });
         }
     }
 
     private boolean checkMapServices() {
-        if (isServicesOK()) {
-            if (isMapsEnabled()) {
-                return true;
-            }
-        }
-        return false;
+        return isServicesOK() && isMapsEnabled();
     }
 
-    private void buildAlertMessageNoGps() {
-        final AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setMessage("This application requires GPS to work properly, do you want to enable it?")
-                .setCancelable(false)
-                .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
-                    public void onClick(@SuppressWarnings("unused") final DialogInterface dialog, @SuppressWarnings("unused") final int id) {
-                        Intent enableGpsIntent = new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS);
-                        startActivityForResult(enableGpsIntent, PERMISSIONS_REQUEST_ENABLE_GPS);
-                    }
-                });
-        final AlertDialog alert = builder.create();
-        alert.show();
+    public boolean isServicesOK() {
+        // TODO: What is ServicesOK ?
+        Log.d(TAG, "isServicesOK: checking google services version");
+
+        int available = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(MainActivity.this);
+
+        if (available == ConnectionResult.SUCCESS) {
+            //everything is fine and the user can make map requests
+            Log.d(TAG, "isServicesOK: Google Play Services is working");
+            return true;
+        } else if (GoogleApiAvailability.getInstance().isUserResolvableError(available)) {
+            //an error occured but we can resolve it
+            Log.d(TAG, "isServicesOK: an error occured but we can fix it");
+            Dialog dialog = GoogleApiAvailability.getInstance().getErrorDialog(MainActivity.this, available, Constants.ERROR_DIALOG_REQUEST);
+            dialog.show();
+        } else {
+            Toast.makeText(this, "You can't make map requests", Toast.LENGTH_SHORT).show();
+        }
+        return false;
     }
 
     public boolean isMapsEnabled() {
@@ -300,85 +417,34 @@ public class MainActivity extends AppCompatActivity implements
         return true;
     }
 
-    private void getLocationPermission() {
-        /*
-         * Request location permission, so that we can get the location of the
-         * device. The result of the permission request is handled by a callback,
-         * onRequestPermissionsResult.
-         */
-        if (ContextCompat.checkSelfPermission(this.getApplicationContext(),
-                android.Manifest.permission.ACCESS_FINE_LOCATION)
-                == PackageManager.PERMISSION_GRANTED) {
-            mLocationPermissionGranted = true;
-
-            getUserDetails();
-            // getChatrooms();
-        } else {
-            ActivityCompat.requestPermissions(this,
-                    new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
-                    PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION);
-        }
+    private void buildAlertMessageNoGps() {
+        final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setMessage("This application requires GPS to work properly, do you want to enable it?")
+                .setCancelable(false)
+                .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                    public void onClick(@SuppressWarnings("unused") final DialogInterface dialog, @SuppressWarnings("unused") final int id) {
+                        Intent enableGpsIntent = new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                        startActivityForResult(enableGpsIntent, Constants.ENABLE_GPS_REQUEST);
+                    }
+                });
+        final AlertDialog alert = builder.create();
+        alert.show();
     }
 
-    public boolean isServicesOK() {
-        Log.d(TAG, "isServicesOK: checking google services version");
-
-        int available = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(MainActivity.this);
-
-        if (available == ConnectionResult.SUCCESS) {
-            //everything is fine and the user can make map requests
-            Log.d(TAG, "isServicesOK: Google Play Services is working");
-            return true;
-        } else if (GoogleApiAvailability.getInstance().isUserResolvableError(available)) {
-            //an error occured but we can resolve it
-            Log.d(TAG, "isServicesOK: an error occured but we can fix it");
-            Dialog dialog = GoogleApiAvailability.getInstance().getErrorDialog(MainActivity.this, available, ERROR_DIALOG_REQUEST);
-            dialog.show();
-        } else {
-            Toast.makeText(this, "You can't make map requests", Toast.LENGTH_SHORT).show();
-        }
-        return false;
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode,
-                                           @NonNull String permissions[],
-                                           @NonNull int[] grantResults) {
-        mLocationPermissionGranted = false;
-
-        switch (requestCode) {
-            case PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION:
-                // If request is cancelled, the result arrays are empty.
-                if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    mLocationPermissionGranted = true;
-                }
-                break;
-        }
-    }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         Log.d(TAG, "onActivityResult: called.");
         switch (requestCode) {
-            case PERMISSIONS_REQUEST_ENABLE_GPS: {
-                if (mLocationPermissionGranted) {
-
+            case Constants.ENABLE_GPS_REQUEST: {
+                if (checkAcesssFineLocationPermissionGranted()) {
                     getUserDetails();
-                } else {
-                    getLocationPermission();
                 }
-                getChatrooms();
             }
         }
 
     }
-
-    private void initSupportActionBar() {
-        setTitle("Chatrooms");
-    }
-
 
     @Override
     public void onClick(View view) {
@@ -388,13 +454,6 @@ public class MainActivity extends AppCompatActivity implements
             }
         }
     }
-
-    private void initChatroomRecyclerView() {
-        mChatroomRecyclerAdapter = new ChatroomRecyclerAdapter(mChatrooms, this);
-        mChatroomRecyclerView.setAdapter(mChatroomRecyclerAdapter);
-        mChatroomRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-    }
-
 
     private void getChatrooms() {
 
@@ -415,10 +474,6 @@ public class MainActivity extends AppCompatActivity implements
 
                 if (queryDocumentSnapshots != null) {
 
-                    if (currentUser == null) {
-                        getUserDetails();
-                    }
-
                     for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
 
                         Chatroom chatroom = doc.toObject(Chatroom.class);
@@ -427,14 +482,26 @@ public class MainActivity extends AppCompatActivity implements
                             String chatroomId = chatroom.getChatroom_id();
                             String email = FirebaseAuth.getInstance().getCurrentUser().getEmail();
                             // TODO: currentUser needs to have an age. Modify LoginActivity
-                            Integer currentUserAge = 21; // currentUser.getAge();
+                            User user = getCurrentUser();
+                            Integer currentUserAge = user.getAge();
+                            Boolean currentUserSeeNearbyEnabled = user.getSeeNearbyEnabled();
 
-                            Boolean isPrivateSettings = chatroom.canAccessPublicChatroom(email);
-                            Boolean isNearbySettings = chatroom.checkProximity(mUserLocation.getGeo_point()) && currentUser.getSeeNearbyEnabled();
+                            if (currentUserAge == null) {
+                                currentUserAge = 0;
+                                user.setAge(currentUserAge);
+                                saveCurrentUser();
+                            }
+
+                            String title = chatroom.getTitle();
+
+                            Boolean isAccessibleToUser = chatroom.isAccessable(email);
+                            Boolean isNearyBy = chatroom.isPublicAndBusiness() && currentUserSeeNearbyEnabled && chatroom.checkProximity(mUserLocation.getGeo_point());
                             Boolean isAlreadyInList = (Boolean) mChatroomIds.contains(chatroomId);
                             Boolean isAgeAppropriate = (Boolean) chatroom.isInAgeRangeInclusive(currentUserAge);
 
-                            if ((isPrivateSettings || isNearbySettings) && !isAlreadyInList && isAgeAppropriate) {
+                            Boolean isGranted = (Boolean) (isAccessibleToUser || isNearyBy) && !isAlreadyInList && isAgeAppropriate;
+
+                            if (isGranted) {
                                 mChatroomIds.add(chatroomId);
                                 mChatrooms.add(chatroom);
                             }
@@ -444,17 +511,16 @@ public class MainActivity extends AppCompatActivity implements
                     Log.d(TAG, "onEvent: number of chatrooms: " + mChatrooms.size());
                     mChatroomRecyclerAdapter.notifyDataSetChanged();
                 }
-
             }
         });
-
-
     }
 
     private void createChatroom(String chatroomName, Boolean isPrivate, Integer ageFrom, Integer ageTo) {
+        User user = getCurrentUser();
+
         final Chatroom chatroom = new Chatroom();
         chatroom.setTitle(chatroomName);
-        chatroom.addUser(currentUser);
+        chatroom.addUser(user);
         chatroom.setPrivate(isPrivate);
         chatroom.setAgeFrom(ageFrom);
         chatroom.setAgeTo(ageTo);
@@ -551,27 +617,6 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (mChatroomEventListener != null) {
-            mChatroomEventListener.remove();
-        }
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        if (checkMapServices()) {
-            if (mLocationPermissionGranted) {
-                getUserDetails();
-            } else {
-                getLocationPermission();
-            }
-        }
-        getChatrooms();
-    }
-
-    @Override
     public void onChatroomSelected(int position) {
         navChatroomActivity(mChatrooms.get(position));
     }
@@ -584,10 +629,29 @@ public class MainActivity extends AppCompatActivity implements
         finish();
     }
 
+    private SwitchCompat enableNearBySwitch;
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_main, menu);
-        return super.onCreateOptionsMenu(menu);
+
+        MenuItem enableNearByMenuItem = menu.findItem(R.id.action_enable_nearby_switch);
+        enableNearByMenuItem.setActionView(R.layout.switch_layout);
+
+        enableNearBySwitch = enableNearByMenuItem.getActionView().findViewById(R.id.switchForActionBar);
+        String switchCompatText = getString(R.string.action_enable_nearby);
+        enableNearBySwitch.setText(switchCompatText);
+        enableNearBySwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                Log.d(TAG, "onCheckedChanged: ");
+                Toast.makeText(mainActivity, isChecked + "'d", Toast.LENGTH_SHORT).show();
+                getCurrentUser().toggleSeeNearbyEnabled();
+                saveCurrentUser(); // saveCurrentUser() calls getChatrooms when it has finished saving the current user
+            }
+        });
+
+        return true;
     }
 
 
@@ -603,8 +667,8 @@ public class MainActivity extends AppCompatActivity implements
                 return true;
             }
             case R.id.action_enable_nearby: {
-                currentUser.toggleSeeNearbyEnabled();
-                saveCurrentUser();
+                getCurrentUser().toggleSeeNearbyEnabled();
+                saveCurrentUser(); // saveCurrentUser() calls getChatrooms when it has finished saving the current user
                 return true;
             }
             default: {
@@ -646,4 +710,85 @@ public class MainActivity extends AppCompatActivity implements
     }
 
 
+    /**
+     * Permission-related Code
+     */
+
+
+    private boolean checkForegroundServicePermissionGranted() {
+        String permission = android.Manifest.permission.FOREGROUND_SERVICE;
+        int permissionRequest = Constants.PERMISSIONS_REQUEST_FOREGROUND_SERVICE;
+        return checkPermissionGranted(this, permission, permissionRequest);
+    }
+
+    private boolean checkAcesssFineLocationPermissionGranted() {
+        String permission = android.Manifest.permission.ACCESS_FINE_LOCATION;
+        int permissionRequest = Constants.PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION;
+        return checkPermissionGranted(this, permission, permissionRequest);
+    }
+
+    private boolean checkPermissionGranted(Activity activity, String permission, int permissionRequest) {
+        if (ContextCompat.checkSelfPermission(activity, permission) == PackageManager.PERMISSION_GRANTED) {
+            String message = String.format("%s granted", permission);
+            Log.d(TAG, message);
+            // Toast.makeText(activity, message, Toast.LENGTH_SHORT).show();
+            return true;
+        } else {
+            String message = String.format("%s NOT granted", permission);
+            Log.d(TAG, message);
+
+            if (ActivityCompat.shouldShowRequestPermissionRationale(activity, permission)) {
+                String[] split = permission.split(".");
+                String permissionName = split[split.length - 1];
+
+                String snackbarText = String.format("%s permission is needed", permissionName);
+                Snackbar.make(findViewById(android.R.id.content), snackbarText, Snackbar.LENGTH_INDEFINITE)
+                        .setAction("ENABLE", new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                ActivityCompat.requestPermissions(activity,
+                                        new String[]{permission},
+                                        permissionRequest);
+                            }
+                        })
+                        .show();
+
+            } else {
+                ActivityCompat.requestPermissions(activity,
+                        new String[]{permission},
+                        permissionRequest);
+            }
+
+        }
+        return false;
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           @NonNull String permissions[],
+                                           @NonNull int[] grantResults) {
+        Log.d(TAG, "onRequestPermissionsResult: ");
+
+        switch (requestCode) {
+            case Constants.PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION: {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Toast.makeText(this, "Access fine location permission granted", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(this, "Access fine location permission is NOT granted", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            case Constants.PERMISSIONS_REQUEST_FOREGROUND_SERVICE: {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Toast.makeText(this, "Foreground service permission granted", Toast.LENGTH_SHORT).show();
+                } else {
+                    // Toast.makeText(this, "Foreground service permission is NOT granted", Toast.LENGTH_SHORT).show();
+                }
+            }
+        }
+    }
 }

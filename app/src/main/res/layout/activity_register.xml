@@ -56,15 +56,6 @@
                     android:hint="@string/confirm_password"
                     android:inputType="textPassword" />
 
-                <EditText
-                    android:id="@+id/input_address"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_below="@+id/input_confirm_password"
-                    android:layout_marginTop="20dp"
-                    android:hint="@string/address"
-                    android:inputType="textPassword" />
-
                 <android.support.v7.widget.AppCompatButton
                     android:id="@+id/btn_register"
                     android:layout_width="match_parent"
@@ -72,7 +63,8 @@
                     android:layout_below="@+id/input_confirm_password"
                     android:layout_marginTop="35dp"
                     android:background="@drawable/theme_button"
-                    android:text="@string/register" />
+                    android:text="@string/register"
+                    android:textColor="@color/White" />
 
             </RelativeLayout>
 

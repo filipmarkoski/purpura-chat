@@ -81,9 +81,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static com.purpura.googlemaps2018.Constants.PERMISSIONS_REQUEST_CAMERA;
-import static com.purpura.googlemaps2018.Constants.PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE;
-
 public class ChatroomActivity extends AppCompatActivity implements
         AddUserToChatFragment.OnUserSelectedListener,
         FilteredChatMessagesFragment.OnChatMessageSelectedListener {
@@ -1287,14 +1284,14 @@ public class ChatroomActivity extends AppCompatActivity implements
 
     private boolean checkWriteExternalStoragePermissionGranted() {
         String permission = android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
-        int permissionRequest = PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE;
-        return checkPermissionGranted(chatroomActivity, permission, permissionRequest);
+        int permissionRequest = Constants.PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE;
+        return checkPermissionGranted(this, permission, permissionRequest);
     }
 
     private boolean checkCameraPermissionGranted() {
         String permission = android.Manifest.permission.CAMERA;
-        int permissionRequest = PERMISSIONS_REQUEST_CAMERA;
-        return checkPermissionGranted(chatroomActivity, permission, permissionRequest);
+        int permissionRequest = Constants.PERMISSIONS_REQUEST_CAMERA;
+        return checkPermissionGranted(this, permission, permissionRequest);
     }
 
     private boolean checkPermissionGranted(Activity activity, String permission, int permissionRequest) {
@@ -1340,7 +1337,7 @@ public class ChatroomActivity extends AppCompatActivity implements
         Log.d(TAG, "onRequestPermissionsResult: ");
 
         switch (requestCode) {
-            case PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE: {
+            case Constants.PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE: {
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     Toast.makeText(this, "Write to external storage permission granted", Toast.LENGTH_SHORT).show();
@@ -1350,7 +1347,7 @@ public class ChatroomActivity extends AppCompatActivity implements
                 return;
             }
 
-            case PERMISSIONS_REQUEST_CAMERA: {
+            case Constants.PERMISSIONS_REQUEST_CAMERA: {
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     Toast.makeText(this, "Camera permission granted", Toast.LENGTH_SHORT).show();

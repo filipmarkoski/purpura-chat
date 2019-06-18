@@ -7,6 +7,10 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
+    <!--Android OS 9.0.0 or SDK 28 relevant permissions-->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
+
     <uses-feature android:name="android.hardware.camera" />
     <uses-feature
         android:glEsVersion="0x00020000"
@@ -20,8 +24,15 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-
-
+        <activity
+            android:name=".ui.ProfileDrawerActivity"
+            android:label="@string/title_activity_profile_drawer"
+            android:parentActivityName=".ui.MainActivity"
+            android:theme="@style/AppTheme.NoActionBar">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.purpura.googlemaps2018.ui.MainActivity" />
+        </activity>
         <activity android:name=".ui.MainActivity" />
         <activity android:name=".ui.LoginActivity">
             <intent-filter>
@@ -70,8 +81,6 @@
         <service
             android:name=".services.LocationService"
             android:stopWithTask="true" />
-
-
         <service
             android:name=".services.MyFirebaseMessagingService"
             android:enabled="true"
@@ -80,7 +89,6 @@
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
-
     </application>
 
 </manifest>

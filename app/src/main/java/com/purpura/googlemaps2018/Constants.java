@@ -5,11 +5,12 @@ public class Constants {
     public static final String MAPVIEW_BUNDLE_KEY = "MapViewBundleKey";
     public static final int ERROR_DIALOG_REQUEST = 9001;
     public static final int PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 9002;
-    public static final int PERMISSIONS_REQUEST_ENABLE_GPS = 9003;
+    public static final int ENABLE_GPS_REQUEST = 9003;
 
     // Image-related permissions
     public static final int PERMISSIONS_REQUEST_CAMERA = 9004;
     public static final int PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE = 9005;
+    public static final int PERMISSIONS_REQUEST_FOREGROUND_SERVICE = 9006;
 
     /**
      * the source claims that READ_EXTERNAL_STORAGE needn't be mentioned when permission-asking

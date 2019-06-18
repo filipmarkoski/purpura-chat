@@ -33,7 +33,7 @@ public class RegisterActivity extends AppCompatActivity implements
     private static final String TAG = "RegisterActivity";
 
     //widgets
-    private EditText mEmail, mPassword, mConfirmPassword, mAddress, mAge;
+    private EditText mEmail, mPassword, mConfirmPassword, mAge;
     private ProgressBar mProgressBar;
 
     //vars
@@ -61,8 +61,8 @@ public class RegisterActivity extends AppCompatActivity implements
 
     /**
      * Register a new email and password to Firebase Authentication
-     * @param email
-     * @param password
+     * @param email the email address of the user
+     * @param password the password
      */
     public void registerNewEmail(final String email, String password){
 
@@ -82,11 +82,6 @@ public class RegisterActivity extends AppCompatActivity implements
                             user.setEmail(email);
                             user.setUsername(email.substring(0, email.indexOf("@")));
                             user.setUser_id(FirebaseAuth.getInstance().getUid());
-
-                            FirebaseFirestoreSettings settings = new FirebaseFirestoreSettings.Builder()
-                                    .setTimestampsInSnapshotsEnabled(true)
-                                    .build();
-                            mDb.setFirestoreSettings(settings);
 
                             DocumentReference newUserRef = mDb
                                     .collection(getString(R.string.collection_users))
@@ -132,7 +127,6 @@ public class RegisterActivity extends AppCompatActivity implements
 
     private void showDialog(){
         mProgressBar.setVisibility(View.VISIBLE);
-
     }
 
     private void hideDialog(){

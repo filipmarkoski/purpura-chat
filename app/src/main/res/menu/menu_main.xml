@@ -15,7 +15,13 @@
     <item
         android:id="@+id/action_enable_nearby"
         android:title="@string/action_enable_nearby"
-        app:showAsAction="always"
-        android:actionLayout="@layout/switch_layout" />
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_enable_nearby_switch"
+        android:title="@string/action_enable_nearby"
+        app:showAsAction="ifRoom"
+        app:actionLayout="@layout/switch_layout" />
+
 
 </menu>

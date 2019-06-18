@@ -20,6 +20,10 @@ public class Chatroom implements Parcelable {
     private Integer ageFrom;
     private Integer ageTo;
 
+    /*
+     * this.users should be this.userSettings!!!
+     * but shouldn't be modified due to database stubbornness
+     * */
     private ArrayList<UserSetting> users;
 
     private GeoPoint geoPoint;
@@ -95,8 +99,16 @@ public class Chatroom implements Parcelable {
         dest.writeList(users);
         dest.writeValue(isPrivate);
         dest.writeString(this.imageUrl);
-        dest.writeInt(this.ageFrom);
-        dest.writeInt(this.ageTo);
+        if (this.ageFrom != null) {
+            dest.writeInt(this.ageFrom);
+        } else {
+            dest.writeInt(Constants.DEFAULT_CHATROOM_AGE_FROM);
+        }
+        if (this.ageTo != null) {
+            dest.writeInt(this.ageTo);
+        } else {
+            dest.writeInt(Constants.DEFAULT_CHATROOM_AGE_TO);
+        }
         dest.writeValue(isShowingNearby);
         dest.writeFloat(radiusInMeters);
         if (isShowingNearby && geoPoint != null) {
@@ -154,8 +166,25 @@ public class Chatroom implements Parcelable {
         this.users = users;
     }
 
-    public Boolean canAccessPublicChatroom(final String userEmail) {
-        return !isPrivate || getSettingForEmail(userEmail) != null;
+    public Boolean isAccessable(final String userEmail) {
+        // user can access the chatroom if the chatroom is Public or
+        // if user has been added in the chatroom and exists in the settings
+        Boolean isPublicNonBusiness = this.isPublic() && !isBusiness();
+        Boolean isPrivateAndInclusive = (Boolean) (this.isPrivate && this.getSettingForEmail(userEmail) != null);
+
+        return isPublicNonBusiness || isPrivateAndInclusive;
+    }
+
+    public Boolean isPublic() {
+        return !this.isPrivate;
+    }
+
+    public Boolean isBusiness() {
+        return this.isShowingNearby && this.geoPoint != null;
+    }
+
+    public Boolean isPublicAndBusiness() {
+        return this.isPublic() && this.isBusiness();
     }
 
     public ArrayList<UserSetting> getUsers() {
@@ -277,10 +306,14 @@ public class Chatroom implements Parcelable {
         this.ageTo = ageTo;
     }
 
+    public Boolean hasAgeLimits() {
+        return this.ageFrom != null && this.ageTo != null;
+    }
+
     public Boolean isInAgeRangeInclusive(Integer currentUserAge) {
-        if (ageFrom != null && ageTo != null) {
-            return ageFrom <= currentUserAge && currentUserAge <= ageTo;
+        if (currentUserAge != null && this.hasAgeLimits()) {
+            return this.ageFrom <= currentUserAge && currentUserAge <= this.ageTo;
         }
-        return false;
+        return true;
     }
 }
