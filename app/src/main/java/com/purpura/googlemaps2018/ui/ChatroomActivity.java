@@ -36,6 +36,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.EditText;
+import android.widget.Switch;
 import android.widget.ToggleButton;
 import android.widget.Toast;
 
@@ -117,7 +118,7 @@ public class ChatroomActivity extends AppCompatActivity implements
     private ChatMessageRecyclerAdapter mChatMessageRecyclerAdapter;
     private ArrayList<ChatMessage> mMessages = new ArrayList<>();
     private Set<String> mMessageIds = new HashSet<>();
-    ToggleButton locationSwitch;
+    Switch locationSwitch;
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
@@ -178,7 +179,7 @@ public class ChatroomActivity extends AppCompatActivity implements
 
         // Initialize Firebase-related
         mDb = FirebaseFirestore.getInstance();
-        locationSwitch = (ToggleButton) findViewById(R.id.location_switch);
+        locationSwitch = (Switch) findViewById(R.id.location_switch);
         /*locationSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
@@ -265,6 +266,19 @@ public class ChatroomActivity extends AppCompatActivity implements
         }
     }
 
+    private void getChatroomImageFromGallery() {
+        Log.d(TAG, "getGalleryImage: ");
+        Intent galleryIntent = new Intent();
+        galleryIntent.setAction(Intent.ACTION_GET_CONTENT);
+        galleryIntent.setType("image/*");
+
+        if (galleryIntent.resolveActivity(getPackageManager()) != null) {
+            Log.d(TAG, "getChatroomImageFromGallery: ");
+            Intent galleryChooser = Intent.createChooser(galleryIntent, "Select an Image");
+            startActivityForResult(galleryChooser, Constants.SELECT_CHATROOM_IMAGE_REQUEST);
+        }
+    }
+
     private void getCameraImage() {
         Log.d(TAG, "getCameraImage: ");
 
@@ -346,7 +360,6 @@ public class ChatroomActivity extends AppCompatActivity implements
         super.onActivityResult(requestCode, resultCode, data);
         Log.d(TAG, "onActivityResult: ");
 
-
         // Gallery Intent
         if (requestCode == Constants.SELECT_GALLERY_IMAGE_REQUEST &&
                 resultCode == Activity.RESULT_OK &&
@@ -356,13 +369,30 @@ public class ChatroomActivity extends AppCompatActivity implements
 
             Uri imageUri = data.getData();
             try {
-                storeImageToFirebaseStorage(imageUri);
+                storeImageToFirebaseStorage(imageUri, requestCode);
             } catch (IOException e) {
                 e.printStackTrace();
             }
 
 
         }
+        // Chatroom Image Intent
+        else if (requestCode == Constants.SELECT_CHATROOM_IMAGE_REQUEST &&
+                resultCode == Activity.RESULT_OK &&
+                data != null && data.getData() != null) {
+
+            Log.d(TAG, "onActivityResult: SELECT_CHATROOM_IMAGE_REQUEST");
+
+            Uri imageUri = data.getData();
+            try {
+                storeImageToFirebaseStorage(imageUri, requestCode);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+
+        }
+
         // Camera Intent
         else if (requestCode == Constants.CAPTURE_CAMERA_IMAGE_REQUEST &&
                 resultCode == Activity.RESULT_OK
@@ -373,14 +403,14 @@ public class ChatroomActivity extends AppCompatActivity implements
             Uri imageUri = Uri.fromFile(new File(mCurrentPhotoPath));
 
             try {
-                storeImageToFirebaseStorage(imageUri);
+                storeImageToFirebaseStorage(imageUri, requestCode);
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
     }
 
-    private void storeImageToFirebaseStorage(Uri uri) throws IOException {
+    private void storeImageToFirebaseStorage(Uri uri, Integer requestCode) throws IOException {
         Log.d(TAG, "storeImageToFirebaseStorage: ");
         if (uri == null) {
             Log.e(TAG, "storeImageToFirebaseStorage: uri is null", new NullPointerException());
@@ -424,7 +454,15 @@ public class ChatroomActivity extends AppCompatActivity implements
                             Log.d(TAG, "storeImageToFirebaseStorage: onComplete: success");
                             String imageDownloadUrl = task.getResult().toString();
                             Toast.makeText(chatroomActivity, imageDownloadUrl, Toast.LENGTH_SHORT).show();
-                            chatroomActivity.storeImageDownloadUrlToCloudFirestore(imageDownloadUrl);
+                            if (requestCode == Constants.SELECT_GALLERY_IMAGE_REQUEST) {
+                                chatroomActivity.storeImageDownloadUrlToCloudFirestore(imageDownloadUrl);
+                            } else if (requestCode == Constants.SELECT_CHATROOM_IMAGE_REQUEST) {
+                                mChatroom.setImageUrl(imageDownloadUrl);
+                                DocumentReference chatroomDocument = mDb
+                                        .collection(getString(R.string.collection_chatrooms))
+                                        .document(mChatroom.getChatroom_id());
+                                chatroomDocument.set(mChatroom);
+                            }
                         } else {
                             // Handle failures
                             String message = "Firebase Storage upload task failed";
@@ -549,12 +587,14 @@ public class ChatroomActivity extends AppCompatActivity implements
             Log.d(TAG, "insertNewMessage: retrieved user client: " + user.toString());
             chatMessage.setUser(user);
 
-            chatMessageDoc.set(chatMessage).addOnCompleteListener(new OnCompleteListener<Void>() {
+            chatMessageDoc.set(chatMessage);/*.addOnCompleteListener(new OnCompleteListener<Void>() {
                 @Override
                 public void onComplete(@NonNull Task<Void> task) {
                     if (task.isSuccessful()) {
-                        clearMessage();
-                        getChatMessages();
+
+
+
+                        // getChatMessages();
 
                         // TODO: use Firebase Messaging To Send A Notification Message
                     } else {
@@ -562,7 +602,12 @@ public class ChatroomActivity extends AppCompatActivity implements
                         Snackbar.make(parentLayout, "Something went wrong.", Snackbar.LENGTH_SHORT).show();
                     }
                 }
-            });
+            });*/
+
+            chatroomActivity.editTextMessage.setText("");
+            mMessageIds.add(chatMessage.getMessage_id());
+            mMessages.add(chatMessage);
+            mChatMessageRecyclerAdapter.notifyDataSetChanged();
         }
     }
 
@@ -701,6 +746,7 @@ public class ChatroomActivity extends AppCompatActivity implements
         });
 
     }
+
     private void toggleShareLocationInChatroom() {
         Log.d(TAG, "toggleShareLocationInChatroom: ");
         User user = getCurrentUser();
@@ -922,6 +968,12 @@ public class ChatroomActivity extends AppCompatActivity implements
                 displaySearchChatroomDialog();
                 return true;
             }
+            case R.id.action_chatroom_image: {
+                if (checkWriteExternalStoragePermissionGranted()) {
+                    getChatroomImageFromGallery();
+                }
+                return true;
+            }
             case R.id.action_chatroom_add_user: {
                 inflateAddUserToChatFragment();
                 return true;
@@ -932,6 +984,7 @@ public class ChatroomActivity extends AppCompatActivity implements
         }
 
     }
+
 
     /**
      * Dialog display functions
@@ -1014,14 +1067,14 @@ public class ChatroomActivity extends AppCompatActivity implements
         AlertDialog.Builder builder = new AlertDialog.Builder(chatroomActivity);
         builder.setTitle("Enter a sequence of letters to search by");
 
-        View findTargetStringMessagesDialog = View.inflate(this, R.layout.layout_chatroom_find, null);
+        View searchChatroomDialog = View.inflate(this, R.layout.layout_chatroom_find, null);
 
-        EditText editChatMessageTargetString = (EditText) findTargetStringMessagesDialog.findViewById(R.id.edit_chat_message_target);
+        EditText editChatMessageTargetString = (EditText) searchChatroomDialog.findViewById(R.id.edit_chat_message_target);
 
         editChatMessageTargetString.setText("");
         editChatMessageTargetString.setSelection(editChatMessageTargetString.getText().length());
 
-        builder.setView(findTargetStringMessagesDialog).setCancelable(false);
+        builder.setView(searchChatroomDialog).setCancelable(false);
 
         builder.setPositiveButton("Search", new DialogInterface.OnClickListener() {
             @Override
@@ -1067,7 +1120,6 @@ public class ChatroomActivity extends AppCompatActivity implements
                /* if (getSupportFragmentManager().getBackStackEntryCount() > 0) {
                     appCompatActivity.onBackPressed();
                 }*/
-                // TODO test delete
                 finish();
             }
         });
@@ -1104,10 +1156,10 @@ public class ChatroomActivity extends AppCompatActivity implements
                 Log.d(TAG, "onComplete: ");
                 View parentLayout = findViewById(android.R.id.content);
                 if (task.isSuccessful()) {
+                    // TODO: Check if the title changes immediately after the chat has been renamed
                     if (chatroomActivity.getSupportActionBar() != null) {
                         chatroomActivity.getSupportActionBar().setDisplayShowTitleEnabled(true);
                         chatroomActivity.getSupportActionBar().setTitle(mChatroom.getTitle());
-
                     }
                     String message = String.format("Chatroom renamed to %s", title);
                     Snackbar.make(parentLayout, message, Snackbar.LENGTH_SHORT).show();

@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:background="@color/White">
 
-    <ToggleButton
+    <Switch
         android:id="@+id/location_switch"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Purpura chat</string>
+    <string name="app_name">Púrpura chat</string>
 
     <!--<string name="google_maps_api_key">AIzaSyA4z1nMNMtAwP47zWC0Xd7_gt67A3EPCMI</string>-->
 
@@ -67,10 +67,13 @@
     <string name="rename_chatroom">Rename Chatroom</string>
     <string name="delete_chatroom">Delete Chatroom</string>
     <string name="search_chatroom">Search Chatroom</string>
+    <string name="chatroom_image">Set Chatroom Image</string>
     <string name="action_enable_nearby">See nearby chatrooms</string>
 
     <string name="default_notification_channel_id" translatable="false">fcm_default_channel</string>
     <string name="fcm_message">FCM Message</string>
     <string name="msg_token_fmt" translatable="false">InstanceID Token: %s</string>
+    <string name="chatroom_name">Chatroom name</string>
+    <string name="image_content_descriptor">image</string>
 
 </resources>

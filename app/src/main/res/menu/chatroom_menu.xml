@@ -35,6 +35,11 @@
         app:showAsAction="never" />
 
     <item
+        android:id="@+id/action_chatroom_image"
+        android:title="@string/chatroom_image"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/action_chatroom_add_user"
         android:title="@string/add_user_to_chatroom"
         app:showAsAction="never" />

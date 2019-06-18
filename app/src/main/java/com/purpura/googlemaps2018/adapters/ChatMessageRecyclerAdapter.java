@@ -1,7 +1,9 @@
 package com.purpura.googlemaps2018.adapters;
 
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Bitmap;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.support.annotation.NonNull;
 import android.support.v4.content.ContextCompat;
@@ -71,7 +73,7 @@ public class ChatMessageRecyclerAdapter extends RecyclerView.Adapter<ChatMessage
             String imageUrl = chatMessage.getImageUrl();
 
             Picasso.get().load(imageUrl)
-                    /*.resize(100, 100)*/
+                    .resize(100, 100)
                     /*.fit()*/
                     .into(holder.image, new com.squareup.picasso.Callback() {
 
@@ -79,6 +81,16 @@ public class ChatMessageRecyclerAdapter extends RecyclerView.Adapter<ChatMessage
                         public void onSuccess() {
                             holder.image.setVisibility(View.VISIBLE);
                             holder.image.setAdjustViewBounds(true);
+                            holder.image.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    // TODO: Open image in web browser
+                                    Intent viewImageIntent = new Intent();
+                                    viewImageIntent.setAction(Intent.ACTION_VIEW);
+                                    viewImageIntent.setData(Uri.parse(imageUrl));
+                                    mContext.startActivity(viewImageIntent);
+                                }
+                            });
                         }
 
                         @Override

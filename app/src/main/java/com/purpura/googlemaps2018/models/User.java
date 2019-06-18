@@ -12,11 +12,6 @@ public class User implements Parcelable {
     private String user_id;
     private String username;
     private String avatar;
-
-    private String firstName;
-    private String lastName;
-    private int age;
-    private String biography;
     private Boolean seeNearbyEnabled;
 
     public User(String email, String user_id, String username, String avatar) {
@@ -39,19 +34,17 @@ public class User implements Parcelable {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof User)) return false;
-        User user = (User) o;
-        return Objects.equals(getEmail(), user.getEmail()) &&
-                Objects.equals(getUser_id(), user.getUser_id());
+    public int describeContents() {
+        return 0;
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hash(getEmail(), getUser_id());
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeString(email);
+        dest.writeString(user_id);
+        dest.writeString(username);
+        dest.writeString(avatar);
     }
-
 
     public static final Creator<User> CREATOR = new Creator<User>() {
         @Override
@@ -115,6 +108,20 @@ public class User implements Parcelable {
         this.seeNearbyEnabled = seeNearbyEnabled;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof User)) return false;
+        User user = (User) o;
+        return Objects.equals(getEmail(), user.getEmail()) &&
+                Objects.equals(getUser_id(), user.getUser_id());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getEmail(), getUser_id());
+    }
+
     @NonNull
     @Override
     public String toString() {
@@ -126,17 +133,42 @@ public class User implements Parcelable {
                 '}';
     }
 
-    @Override
-    public int describeContents() {
-        return 0;
+
+    private String firstName;
+    private String lastName;
+    private Integer age;
+    private String biography;
+
+    public String getFirstName() {
+        return firstName;
     }
 
-    @Override
-    public void writeToParcel(Parcel dest, int flags) {
-        dest.writeString(email);
-        dest.writeString(user_id);
-        dest.writeString(username);
-        dest.writeString(avatar);
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
+    }
+
+    public Integer getAge() {
+        return age;
+    }
+
+    public void setAge(Integer age) {
+        this.age = age;
+    }
+
+    public String getBiography() {
+        return biography;
+    }
+
+    public void setBiography(String biography) {
+        this.biography = biography;
     }
 }
 

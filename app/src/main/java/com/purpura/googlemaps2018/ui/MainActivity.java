@@ -37,6 +37,7 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
+import com.google.api.LogDescriptor;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
@@ -61,16 +62,13 @@ import com.purpura.googlemaps2018.services.LocationService;
 
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Set;
 
 import javax.annotation.Nullable;
 
 import static com.purpura.googlemaps2018.Constants.ERROR_DIALOG_REQUEST;
 import static com.purpura.googlemaps2018.Constants.PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION;
-import static com.purpura.googlemaps2018.Constants.PERMISSIONS_REQUEST_CAMERA;
 import static com.purpura.googlemaps2018.Constants.PERMISSIONS_REQUEST_ENABLE_GPS;
-import static com.purpura.googlemaps2018.Constants.PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE;
 
 // Image-related permissions
 
@@ -141,24 +139,42 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     private void getUserDetails() {
-        if (mUserLocation == null) {
+        String uid = FirebaseAuth.getInstance().getUid();
+
+        if (mUserLocation == null && uid != null) {
             mUserLocation = new UserLocation();
 
-            DocumentReference userRef = mDb.collection(getString(R.string.collection_users))
-                    .document(FirebaseAuth.getInstance().getUid());
+            DocumentReference currentFirebaseUserDocument = mDb.collection(getString(R.string.collection_users))
+                    .document(uid);
 
-            userRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
-                @Override
-                public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-                    if (task.isSuccessful()) {
-                        Log.d(TAG, "onComplete: successfully set the user client.");
-                        currentUser = task.getResult().toObject(User.class);
-                        mUserLocation.setUser(currentUser);
-                        ((UserClient) (getApplicationContext())).setUser(currentUser);
-                        getLastKnownLocation();
-                    }
-                }
-            });
+            currentFirebaseUserDocument.get()
+                    .addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception e) {
+                            Log.e(TAG, "onFailure: couldn't get CurrentUser", e);
+                            Toast.makeText(mainActivity, "Failed to get current user", Toast.LENGTH_SHORT).show();
+                        }
+                    })
+                    .addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                        @Override
+                        public void onSuccess(DocumentSnapshot documentSnapshot) {
+                            Log.d(TAG, "onSuccess: ");
+                            Toast.makeText(mainActivity, "Succesfully accessed current user details", Toast.LENGTH_SHORT).show();
+                        }
+                    })
+                    .addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+                        @Override
+                        public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                            if (task.isSuccessful() && task.getResult() != null) {
+                                Log.d(TAG, "onComplete: successfully set the user client.");
+                                currentUser = task.getResult().toObject(User.class);
+                                Toast.makeText(mainActivity, currentUser != null ? "Welcome, " + currentUser.getUsername() : null, Toast.LENGTH_SHORT).show();
+                                mUserLocation.setUser(currentUser);
+                                ((UserClient) (getApplicationContext())).setUser(currentUser);
+                                getLastKnownLocation();
+                            }
+                        }
+                    });
         } else {
             getLastKnownLocation();
         }
@@ -367,9 +383,8 @@ public class MainActivity extends AppCompatActivity implements
     @Override
     public void onClick(View view) {
         switch (view.getId()) {
-
             case R.id.fab_create_chatroom: {
-                newChatroomDialog();
+                displayCreateChatroomDialog();
             }
         }
     }
@@ -399,20 +414,28 @@ public class MainActivity extends AppCompatActivity implements
                 mChatroomIds.clear();
 
                 if (queryDocumentSnapshots != null) {
+
+                    if (currentUser == null) {
+                        getUserDetails();
+                    }
+
                     for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
 
                         Chatroom chatroom = doc.toObject(Chatroom.class);
 
                         if (FirebaseAuth.getInstance().getCurrentUser() != null && mUserLocation != null) {
+                            String chatroomId = chatroom.getChatroom_id();
                             String email = FirebaseAuth.getInstance().getCurrentUser().getEmail();
+                            // TODO: currentUser needs to have an age. Modify LoginActivity
+                            Integer currentUserAge = 21; // currentUser.getAge();
 
-
-                            Boolean isPrivateSettings = chatroom.canAccess(email);
+                            Boolean isPrivateSettings = chatroom.canAccessPublicChatroom(email);
                             Boolean isNearbySettings = chatroom.checkProximity(mUserLocation.getGeo_point()) && currentUser.getSeeNearbyEnabled();
-                            Boolean isAlreadyInList = mChatroomIds.contains(chatroom.getChatroom_id());
+                            Boolean isAlreadyInList = (Boolean) mChatroomIds.contains(chatroomId);
+                            Boolean isAgeAppropriate = (Boolean) chatroom.isInAgeRangeInclusive(currentUserAge);
 
-                            if ((isPrivateSettings || isNearbySettings) && !isAlreadyInList) {
-                                mChatroomIds.add(chatroom.getChatroom_id());
+                            if ((isPrivateSettings || isNearbySettings) && !isAlreadyInList && isAgeAppropriate) {
+                                mChatroomIds.add(chatroomId);
                                 mChatrooms.add(chatroom);
                             }
                         }
@@ -428,13 +451,13 @@ public class MainActivity extends AppCompatActivity implements
 
     }
 
-    private void buildNewChatroom(String chatroomName, Boolean isPrivate) {
-
+    private void createChatroom(String chatroomName, Boolean isPrivate, Integer ageFrom, Integer ageTo) {
         final Chatroom chatroom = new Chatroom();
         chatroom.setTitle(chatroomName);
-        chatroom.setPrivate(isPrivate);
         chatroom.addUser(currentUser);
-
+        chatroom.setPrivate(isPrivate);
+        chatroom.setAgeFrom(ageFrom);
+        chatroom.setAgeTo(ageTo);
 
         DocumentReference newChatroomRef = mDb
                 .collection(getString(R.string.collection_chatrooms))
@@ -442,19 +465,32 @@ public class MainActivity extends AppCompatActivity implements
 
         chatroom.setChatroom_id(newChatroomRef.getId());
 
-        newChatroomRef.set(chatroom).addOnCompleteListener(new OnCompleteListener<Void>() {
-            @Override
-            public void onComplete(@NonNull Task<Void> task) {
-                hideDialog();
+        newChatroomRef.set(chatroom)
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Log.e(TAG, "onFailure: ", e);
+                    }
+                })
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void aVoid) {
+                        Toast.makeText(mainActivity, "onSuccess", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .addOnCompleteListener(new OnCompleteListener<Void>() {
+                    @Override
+                    public void onComplete(@NonNull Task<Void> task) {
+                        hideDialog();
 
-                if (task.isSuccessful()) {
-                    navChatroomActivity(chatroom);
-                } else {
-                    View parentLayout = findViewById(android.R.id.content);
-                    Snackbar.make(parentLayout, "Something went wrong.", Snackbar.LENGTH_SHORT).show();
-                }
-            }
-        });
+                        if (task.isSuccessful()) {
+                            navChatroomActivity(chatroom);
+                        } else {
+                            View parentLayout = findViewById(android.R.id.content);
+                            Snackbar.make(parentLayout, "Something went wrong.", Snackbar.LENGTH_SHORT).show();
+                        }
+                    }
+                });
     }
 
     private void navChatroomActivity(Chatroom chatroom) {
@@ -463,58 +499,42 @@ public class MainActivity extends AppCompatActivity implements
         startActivity(intent);
     }
 
-    private void newChatroomDialog() {
-
+    private void displayCreateChatroomDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Enter a chatroom name");
 
+        View createChatroomDialog = View.inflate(this, R.layout.private_checkbox, null);
+
+        EditText editChatroomName = (EditText) createChatroomDialog.findViewById(R.id.chatRoomName);
+        EditText editChatroomAgeFrom = (EditText) createChatroomDialog.findViewById(R.id.edit_age_from);
+        EditText editChatroomAgeTo = (EditText) createChatroomDialog.findViewById(R.id.edit_age_to);
+
+        editChatroomAgeFrom.setText(Constants.DEFAULT_CHATROOM_AGE_FROM.toString());
+        editChatroomAgeTo.setText(Constants.DEFAULT_CHATROOM_AGE_TO.toString());
+
         final Boolean[] isPrivate = {false};
-        View checkBoxView = View.inflate(this, R.layout.private_checkbox, null);
-        CheckBox checkBox = (CheckBox) checkBoxView.findViewById(R.id.checkbox);
+
+        CheckBox checkBox = (CheckBox) createChatroomDialog.findViewById(R.id.checkbox);
         checkBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 isPrivate[0] = isChecked;
             }
         });
-        EditText chatRoomName = (EditText) checkBoxView.findViewById(R.id.chatRoomName);
+
         checkBox.setText("Private chatroom");
-        builder.setView(checkBoxView).setCancelable(false);
+        builder.setView(createChatroomDialog).setCancelable(false);
 
         builder.setPositiveButton("CREATE", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                if (!chatRoomName.getText().toString().equals("")) {
-                    buildNewChatroom(chatRoomName.getText().toString(), isPrivate[0]);
-                } else {
-                    Toast.makeText(MainActivity.this, "Enter a chatroom name", Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
-        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                dialog.cancel();
-            }
-        });
 
-        builder.show();
-    }
+                String chatroomName = editChatroomName.getText().toString();
+                Integer chatroomAgeFrom = Integer.parseInt(editChatroomAgeFrom.getText().toString());
+                Integer chatroomAgeTo = Integer.parseInt(editChatroomAgeTo.getText().toString());
 
-    private void newPrivateChatroomDialog() {
-
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Enter a chatroom name");
-
-        final EditText input = new EditText(this);
-        input.setInputType(InputType.TYPE_CLASS_TEXT);
-        builder.setView(input);
-
-        builder.setPositiveButton("CREATE", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                if (!input.getText().toString().equals("")) {
-                    buildNewChatroom(input.getText().toString(), false);
+                if (!chatroomName.equals("")) {
+                    createChatroom(chatroomName, isPrivate[0], chatroomAgeFrom, chatroomAgeTo);
                 } else {
                     Toast.makeText(MainActivity.this, "Enter a chatroom name", Toast.LENGTH_SHORT).show();
                 }

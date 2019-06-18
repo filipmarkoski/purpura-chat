@@ -18,5 +18,20 @@ public class Constants {
 
     public static final int SELECT_GALLERY_IMAGE_REQUEST = 1;
     public static final int CAPTURE_CAMERA_IMAGE_REQUEST = 2;
+    public static final int SELECT_CHATROOM_IMAGE_REQUEST = 3;
+
+    /*
+     * Default values
+     * */
     public static final String DEFAULT_PICTURE_NAME = "example.jpg";
+    public static final String DEFAULT_CHATROOM_IMAGE_URL = "http://clv.h-cdn.co/assets/15/22/768x768/square-1432664914-strawberry-facts1.jpg";
+
+
+    /*
+     * The oldest person ever whose age has been independently verified is
+     * Jeanne Calment (1875–1997) of France,
+     * who lived to the age of 122 years, 164 days.
+     * */
+    public static final Integer DEFAULT_CHATROOM_AGE_FROM = 0;
+    public static final Integer DEFAULT_CHATROOM_AGE_TO = 130;
 }
