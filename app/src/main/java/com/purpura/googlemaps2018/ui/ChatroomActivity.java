@@ -1015,7 +1015,7 @@ public class ChatroomActivity extends AppCompatActivity implements
         View renameChatroomDialog = View.inflate(this, R.layout.layout_chatroom_rename, null);
 
         EditText editNickname = (EditText) renameChatroomDialog.findViewById(R.id.edit_chatroom_name);
-
+        editNickname.setText(mChatroom.getUserNickname(getCurrentUser().getEmail()));
         builder.setView(renameChatroomDialog).setCancelable(false);
 
         builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
