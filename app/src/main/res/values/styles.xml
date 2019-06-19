@@ -8,6 +8,35 @@
         <item name="colorAccent">@color/colorAccent</item>
     </style>
 
+
+    <style name="theme_orange" parent="Theme.AppCompat.Light.DarkActionBar">
+        <!-- Customize your theme here. -->
+        <item name="colorPrimary">@color/md_amber_A200</item>
+        <item name="colorPrimaryDark">@color/md_amber_900</item>
+        <item name="colorAccent">@color/md_amber_600</item>
+    </style>
+
+    <style name="theme_blue" parent="Theme.AppCompat.Light.DarkActionBar">
+        <!-- Customize your theme here. -->
+        <item name="colorPrimary">@color/md_blue_A200</item>
+        <item name="colorPrimaryDark">@color/md_blue_300</item>
+        <item name="colorAccent">@color/md_blue_600</item>
+    </style>
+
+
+    <style name="theme_cyan" parent="Theme.AppCompat.Light.DarkActionBar">
+        <!-- Customize your theme here. -->
+        <item name="colorPrimary">@color/md_cyan_A400</item>
+        <item name="colorPrimaryDark">@color/md_cyan_A700</item>
+        <item name="colorAccent">@color/md_cyan_100</item>
+    </style>
+
+    <style name="theme_purple" parent="Theme.AppCompat.Light.DarkActionBar">
+        <!-- Customize your theme here. -->
+        <item name="colorPrimary">@color/md_purple_300</item>
+        <item name="colorPrimaryDark">@color/md_purple_700</item>
+        <item name="colorAccent">@color/md_purple_800</item>
+    </style>
     <style name="AppTheme.NoActionBar">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>

@@ -7,6 +7,7 @@ public class UserSetting implements Parcelable {
     private User user;
     private Boolean enableSharingLocation;
     private UserLocation userLocation;
+    private String userNickname;
 
     public UserSetting() {
         user = new User();
@@ -18,6 +19,15 @@ public class UserSetting implements Parcelable {
         user = (User) in.readValue(User.class.getClassLoader());
         enableSharingLocation = (Boolean) in.readValue(Boolean.class.getClassLoader());
         userLocation = (UserLocation) in.readValue(UserLocation.class.getClassLoader());
+        userNickname = in.readString();
+    }
+
+    public String getUserNickname() {
+        return userNickname;
+    }
+
+    public void setUserNickname(String userNickname) {
+        this.userNickname = userNickname;
     }
 
 
@@ -52,6 +62,7 @@ public class UserSetting implements Parcelable {
         dest.writeValue(user);
         dest.writeValue(enableSharingLocation);
         dest.writeValue(userLocation);
+        dest.writeString(userNickname);
     }
     public static final Creator<UserSetting> CREATOR = new Creator<UserSetting>() {
         @Override

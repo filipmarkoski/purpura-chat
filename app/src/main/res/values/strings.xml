@@ -89,5 +89,8 @@
     <string name="menu_tools">Tools</string>
     <string name="menu_share">Share</string>
     <string name="menu_send">Send</string>
+    <string name="action_change_theme">Change color</string>
+    <string name="color_picker_title">Choose color</string>
+    <string name="action_change_nickname">Set nickname</string>
 
 </resources>

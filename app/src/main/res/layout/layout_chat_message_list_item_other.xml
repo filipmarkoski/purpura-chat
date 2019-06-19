@@ -23,6 +23,12 @@
         android:textSize="12sp"
         android:textStyle="bold" />
 
+    <TextView
+        android:id="@+id/chat_message_timestamp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="10sp" />
+
     <android.support.text.emoji.widget.EmojiAppCompatTextView
         android:id="@+id/chat_message_message"
         android:layout_width="match_parent"

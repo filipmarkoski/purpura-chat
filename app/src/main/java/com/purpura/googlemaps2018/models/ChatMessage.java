@@ -4,7 +4,7 @@ import android.graphics.Bitmap;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.support.annotation.NonNull;
-import com.google.firebase.firestore.ServerTimestamp;
+
 import java.util.Date;
 
 public class ChatMessage implements Parcelable {
@@ -13,8 +13,7 @@ public class ChatMessage implements Parcelable {
     private String message;
     private String message_id;
     private String imageUrl;
-    private @ServerTimestamp
-    Date timestamp;
+    private Date timestamp;
 
     private Bitmap image;
 
@@ -28,6 +27,7 @@ public class ChatMessage implements Parcelable {
         this.message_id = message_id;
         this.imageUrl = imageUrl;
         this.timestamp = timestamp;
+
     }
 
     public ChatMessage(Parcel in) {
@@ -36,6 +36,7 @@ public class ChatMessage implements Parcelable {
         this.message_id = in.readString();
         this.imageUrl = in.readString();
         this.timestamp = (Date) in.readValue(Date.class.getClassLoader());
+
     }
 
     public static final Creator<ChatMessage> CREATOR = new Creator<ChatMessage>() {
@@ -57,7 +58,9 @@ public class ChatMessage implements Parcelable {
         dest.writeString(this.message_id);
         dest.writeString(this.imageUrl);
         dest.writeValue(this.timestamp);
+
     }
+
 
     public User getUser() {
         return user;

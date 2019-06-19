@@ -23,5 +23,8 @@
         app:showAsAction="ifRoom"
         app:actionLayout="@layout/switch_layout" />
 
-
+    <item
+        android:id="@+id/action_change_theme"
+        android:title="@string/action_change_theme"
+        app:showAsAction="never" />
 </menu>

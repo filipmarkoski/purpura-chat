@@ -44,4 +44,14 @@
         android:title="@string/add_user_to_chatroom"
         app:showAsAction="never" />
 
+    <item
+        android:id="@+id/action_chatroom_change_theme"
+        android:title="@string/action_change_theme"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_chatroom_change_nickname"
+        android:title="@string/action_change_nickname"
+        app:showAsAction="never" />
+
 </menu>

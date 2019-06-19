@@ -15,10 +15,14 @@ import android.util.Log;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkManager;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 import com.purpura.googlemaps2018.R;
+import com.purpura.googlemaps2018.UserClient;
 import com.purpura.googlemaps2018.models.ChatMessage;
 import com.purpura.googlemaps2018.models.User;
 import com.purpura.googlemaps2018.ui.MainActivity;
@@ -30,7 +34,7 @@ import java.util.Date;
 public class MyFirebaseMessagingService extends FirebaseMessagingService {
 
     private static final String TAG = "MyFirebaseMsgService";
-
+    private FirebaseFirestore mDb;
     /**
      * Called when message is received.
      *
@@ -130,6 +134,13 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
      */
     private void sendRegistrationToServer(String token) {
         // TODO: Implement this method to send token to your app server.
+        User user = ((UserClient) (getApplicationContext())).getUser();
+        user.setDeviceToken(token);
+        DocumentReference userRef = mDb
+                .collection(getString(R.string.collection_users))
+                .document(FirebaseAuth.getInstance().getUid());
+
+        userRef.set(user);
     }
 
     /**
@@ -188,7 +199,6 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                 remoteMessage = new RemoteMessage.Builder(userId)
                         .setMessageId(messageId)
                         .addData("message", message)
-                        // .setTopic(topic) // TODO: import com.google.firebase.messaging.Message;
                         .build();
             }
 

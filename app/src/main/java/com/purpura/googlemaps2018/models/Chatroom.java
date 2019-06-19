@@ -29,6 +29,34 @@ public class Chatroom implements Parcelable {
     private GeoPoint geoPoint;
     private Boolean isShowingNearby;
     private float radiusInMeters;
+    private String theme;
+
+    @SuppressWarnings("unchecked")
+    protected Chatroom(Parcel in) {
+        title = in.readString();
+        chatroom_id = in.readString();
+        users = in.readArrayList(UserSetting.class.getClassLoader());
+        isPrivate = (Boolean) in.readValue(Boolean.class.getClassLoader());
+        this.imageUrl = in.readString();
+        this.ageFrom = in.readInt();
+        this.ageTo = in.readInt();
+        isShowingNearby = (Boolean) in.readValue(Boolean.class.getClassLoader());
+        radiusInMeters = in.readFloat();
+        theme = in.readString();
+        Double lat = null;
+        Double lon = null;
+        if (isShowingNearby) {
+            lat = (Double) in.readValue(Double.class.getClassLoader());
+            lon = (Double) in.readValue(Double.class.getClassLoader());
+
+        }
+        if (lat != null && lon != null)
+            geoPoint = new GeoPoint(lat, lon);
+    }
+
+    public String getTheme() {
+        return theme;
+    }
 
     public Chatroom() {
         this.users = new ArrayList<>();
@@ -63,27 +91,8 @@ public class Chatroom implements Parcelable {
         isShowingNearby = showingNearby;
     }
 
-
-    @SuppressWarnings("unchecked")
-    protected Chatroom(Parcel in) {
-        title = in.readString();
-        chatroom_id = in.readString();
-        users = in.readArrayList(UserSetting.class.getClassLoader());
-        isPrivate = (Boolean) in.readValue(Boolean.class.getClassLoader());
-        this.imageUrl = in.readString();
-        this.ageFrom = in.readInt();
-        this.ageTo = in.readInt();
-        isShowingNearby = (Boolean) in.readValue(Boolean.class.getClassLoader());
-        radiusInMeters = in.readFloat();
-        Double lat = null;
-        Double lon = null;
-        if (isShowingNearby) {
-            lat = (Double) in.readValue(Double.class.getClassLoader());
-            lon = (Double) in.readValue(Double.class.getClassLoader());
-
-        }
-        if (lat != null && lon != null)
-            geoPoint = new GeoPoint(lat, lon);
+    public void setTheme(String theme) {
+        this.theme = theme;
     }
 
 
@@ -111,6 +120,7 @@ public class Chatroom implements Parcelable {
         }
         dest.writeValue(isShowingNearby);
         dest.writeFloat(radiusInMeters);
+        dest.writeString(theme);
         if (isShowingNearby && geoPoint != null) {
             dest.writeValue(geoPoint.getLatitude());
             dest.writeValue(geoPoint.getLongitude());
@@ -315,5 +325,18 @@ public class Chatroom implements Parcelable {
             return this.ageFrom <= currentUserAge && currentUserAge <= this.ageTo;
         }
         return true;
+    }
+
+    public void changeUserNickname(String email, String enteredNickname) {
+        UserSetting userSetting = getSettingForEmail(email);
+        if (userSetting != null)
+            userSetting.setUserNickname(enteredNickname);
+    }
+
+    public String getUserNickname(String email) {
+        UserSetting userSetting = getSettingForEmail(email);
+        if (userSetting != null)
+            return userSetting.getUserNickname();
+        else return null;
     }
 }

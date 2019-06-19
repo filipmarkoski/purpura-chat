@@ -13,6 +13,8 @@ public class User implements Parcelable {
     private String username;
     private String avatar;
     private Boolean seeNearbyEnabled;
+    private String deviceToken;
+
 
     public User(String email, String user_id, String username, String avatar) {
         this.email = email;
@@ -20,10 +22,7 @@ public class User implements Parcelable {
         this.username = username;
         this.avatar = avatar;
         this.seeNearbyEnabled = false;
-    }
 
-    public User() {
-        this.seeNearbyEnabled = false;
     }
 
     protected User(Parcel in) {
@@ -31,6 +30,19 @@ public class User implements Parcelable {
         user_id = in.readString();
         username = in.readString();
         avatar = in.readString();
+
+    }
+
+    public User() {
+        this.seeNearbyEnabled = false;
+    }
+
+    public String getDeviceToken() {
+        return deviceToken;
+    }
+
+    public void setDeviceToken(String deviceToken) {
+        this.deviceToken = deviceToken;
     }
 
     @Override
@@ -44,6 +56,7 @@ public class User implements Parcelable {
         dest.writeString(user_id);
         dest.writeString(username);
         dest.writeString(avatar);
+
     }
 
     public static final Creator<User> CREATOR = new Creator<User>() {

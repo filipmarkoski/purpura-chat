@@ -1,16 +1,16 @@
 package com.purpura.googlemaps2018.ui;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
-import android.content.pm.PackageManager;
-import android.graphics.Color;
-import android.os.Build;
-import android.app.Activity;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
@@ -36,8 +36,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.EditText;
-import android.widget.Switch;
-import android.widget.ToggleButton;
 import android.widget.Toast;
 
 import com.google.android.gms.tasks.Continuation;
@@ -57,7 +55,6 @@ import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.messaging.FirebaseMessaging;
-import com.google.firebase.messaging.RemoteMessage;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
@@ -68,6 +65,7 @@ import com.purpura.googlemaps2018.UserClient;
 import com.purpura.googlemaps2018.adapters.ChatMessageRecyclerAdapter;
 import com.purpura.googlemaps2018.models.ChatMessage;
 import com.purpura.googlemaps2018.models.Chatroom;
+import com.purpura.googlemaps2018.models.Themes;
 import com.purpura.googlemaps2018.models.User;
 import com.purpura.googlemaps2018.models.UserLocation;
 
@@ -115,6 +113,8 @@ public class ChatroomActivity extends AppCompatActivity implements
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
+
+        getIncomingIntent();
         super.onCreate(savedInstanceState);
         Log.d(TAG, "onCreate: ");
 
@@ -196,10 +196,30 @@ public class ChatroomActivity extends AppCompatActivity implements
         mImagesFolderRef = mStorageRef.child("images");
         FirebaseMessaging.getInstance().setAutoInitEnabled(true);
 
-        getIncomingIntent();
+        displayChatroomName();
+        joinChatroom();
         initChatroomRecyclerView();
     }
 
+    private void getIncomingIntent() {
+        Log.d(TAG, "getIncomingIntent: ");
+        if (getIntent().hasExtra(getString(R.string.intent_chatroom))) {
+            Log.d(TAG, "getIncomingIntent: hasExtra");
+            mChatroom = getIntent().getParcelableExtra(getString(R.string.intent_chatroom));
+            setActivityTheme(mChatroom.getTheme());
+
+        }
+    }
+
+    public int setActivityTheme(String themeName) {
+        if (themeName == null) {
+            themeName = Themes.Default.toString();
+        }
+        String resourceName = String.format("theme_%s", themeName.toLowerCase());
+        int themeID = this.getResources().getIdentifier(resourceName, "style", this.getPackageName());
+        setTheme(themeID);
+        return themeID;
+    }
 
     private void storeImageDownloadUrlToCloudFirestore(String imageDownloadURL) {
         Log.d(TAG, "storeImageDownloadUrlToCloudFirestore: ");
@@ -399,6 +419,11 @@ public class ChatroomActivity extends AppCompatActivity implements
             } catch (IOException e) {
                 e.printStackTrace();
             }
+        } else if (requestCode == Constants.SELECT_THEME) {
+
+            String themeName = data.getStringExtra("themeName");
+            mChatroom.setTheme(themeName);
+            recreate();
         }
     }
 
@@ -579,14 +604,14 @@ public class ChatroomActivity extends AppCompatActivity implements
             Log.d(TAG, "insertNewMessage: retrieved user client: " + user.toString());
             chatMessage.setUser(user);
 
-            chatMessageDoc.set(chatMessage);/*.addOnCompleteListener(new OnCompleteListener<Void>() {
+
+            chatMessageDoc.set(chatMessage).addOnCompleteListener(new OnCompleteListener<Void>() {
                 @Override
                 public void onComplete(@NonNull Task<Void> task) {
                     if (task.isSuccessful()) {
 
 
-
-                        // getChatMessages();
+                        getChatMessages();
 
                         // TODO: use Firebase Messaging To Send A Notification Message
                     } else {
@@ -594,7 +619,7 @@ public class ChatroomActivity extends AppCompatActivity implements
                         Snackbar.make(parentLayout, "Something went wrong.", Snackbar.LENGTH_SHORT).show();
                     }
                 }
-            });*/
+            });
 
             chatroomActivity.editTextMessage.setText("");
             mMessageIds.add(chatMessage.getMessage_id());
@@ -649,7 +674,7 @@ public class ChatroomActivity extends AppCompatActivity implements
 
     private void initChatroomRecyclerView() {
         Log.d(TAG, "initChatroomRecyclerView: ");
-        mChatMessageRecyclerAdapter = new ChatMessageRecyclerAdapter(chatroomActivity, mMessages);
+        mChatMessageRecyclerAdapter = new ChatMessageRecyclerAdapter(chatroomActivity, mMessages, getTheme(), mChatroom.getUsers());
         mChatMessageRecyclerView.setAdapter(mChatMessageRecyclerAdapter);
         mChatMessageRecyclerView.setLayoutManager(new LinearLayoutManager(this));
 
@@ -681,15 +706,6 @@ public class ChatroomActivity extends AppCompatActivity implements
         this.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
     }
 
-    private void getIncomingIntent() {
-        Log.d(TAG, "getIncomingIntent: ");
-        if (getIntent().hasExtra(getString(R.string.intent_chatroom))) {
-            Log.d(TAG, "getIncomingIntent: hasExtra");
-            mChatroom = getIntent().getParcelableExtra(getString(R.string.intent_chatroom));
-            displayChatroomName();
-            joinChatroom();
-        }
-    }
 
     private DocumentReference getCurrentUserSetting() {
         Log.d(TAG, "getCurrentUserSetting: ");
@@ -704,6 +720,15 @@ public class ChatroomActivity extends AppCompatActivity implements
         Log.d(TAG, "leaveChatroom: ");
         User user = getCurrentUser();
         mChatroom.removeUser(user);
+        FirebaseMessaging.getInstance().subscribeToTopic(mChatroom.getTitle())
+                .addOnCompleteListener(new OnCompleteListener<Void>() {
+                    @Override
+                    public void onComplete(@NonNull Task<Void> task) {
+
+                        Log.d(TAG, "task completed");
+
+                    }
+                });
         finish();
     }
 
@@ -817,7 +842,7 @@ public class ChatroomActivity extends AppCompatActivity implements
     protected void onResume() {
         super.onResume();
         Log.d(TAG, "onResume: ");
-        // getIncomingIntent();
+        getIncomingIntent();
         // initChatroomRecyclerView();
         // locationSwitch.setChecked(mChatroom.isLocationEnabled(getCurrentUser()));
 
@@ -970,6 +995,14 @@ public class ChatroomActivity extends AppCompatActivity implements
                 inflateAddUserToChatFragment();
                 return true;
             }
+            case R.id.action_chatroom_change_theme: {
+                showColorPicker();
+                return true;
+            }
+            case R.id.action_chatroom_change_nickname: {
+                showNicknameDialog();
+                return true;
+            }
             default: {
                 return super.onOptionsItemSelected(item);
             }
@@ -977,6 +1010,41 @@ public class ChatroomActivity extends AppCompatActivity implements
 
     }
 
+    private void showNicknameDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(chatroomActivity);
+        View renameChatroomDialog = View.inflate(this, R.layout.layout_chatroom_rename, null);
+
+        EditText editNickname = (EditText) renameChatroomDialog.findViewById(R.id.edit_chatroom_name);
+
+        builder.setView(renameChatroomDialog).setCancelable(false);
+
+        builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                String enteredNickname = editNickname.getText().toString().trim();
+                if (!enteredNickname.isEmpty()) {
+                    mChatroom.changeUserNickname(getCurrentUser().getEmail(), enteredNickname);
+                    initChatroomRecyclerView();
+                } else {
+                    Toast.makeText(chatroomActivity, "You have to enter a nickname", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+            }
+        });
+
+        builder.show();
+    }
+
+
+    private void showColorPicker() {
+        Intent intent = new Intent(this, ThemeActivity.class);
+        startActivityForResult(intent, Constants.SELECT_THEME);
+    }
 
     /**
      * Dialog display functions

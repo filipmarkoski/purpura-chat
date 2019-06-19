@@ -17,12 +17,10 @@ import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
-import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.SwitchCompat;
-import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -31,7 +29,6 @@ import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ProgressBar;
-import android.widget.Switch;
 import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -42,7 +39,6 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
-import com.google.api.LogDescriptor;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
@@ -96,9 +92,13 @@ public class MainActivity extends AppCompatActivity implements
     private FirebaseFirestore mDb;
     private FusedLocationProviderClient mFusedLocationClient;
     private UserLocation mUserLocation;
+    private SwitchCompat enableNearBySwitch;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
@@ -171,12 +171,11 @@ public class MainActivity extends AppCompatActivity implements
             onResumeCalled = !onResumeCalled;
 
             if (checkMapServices() && checkAcesssFineLocationPermissionGranted()) {
-                // Toast.makeText(mainActivity, "Fetching current user's details", Toast.LENGTH_SHORT).show();
+
                 getUserDetails();
 
-
                 if (count == 0 && getCurrentUser() != null) {
-                    if (getCurrentUser().getSeeNearbyEnabled() != null) {
+                    if (getCurrentUser().getSeeNearbyEnabled() != null && enableNearBySwitch != null) {
                         enableNearBySwitch.setChecked(getCurrentUser().getSeeNearbyEnabled());
                         mainActivity.count += 1;
                     }
@@ -441,10 +440,13 @@ public class MainActivity extends AppCompatActivity implements
                 if (checkAcesssFineLocationPermissionGranted()) {
                     getUserDetails();
                 }
+                break;
             }
+
         }
 
     }
+
 
     @Override
     public void onClick(View view) {
@@ -618,7 +620,10 @@ public class MainActivity extends AppCompatActivity implements
 
     @Override
     public void onChatroomSelected(int position) {
-        navChatroomActivity(mChatrooms.get(position));
+
+        Chatroom selectedChatroom = mChatrooms.get(position);
+        navChatroomActivity(selectedChatroom);
+
     }
 
     private void signOut() {
@@ -629,13 +634,12 @@ public class MainActivity extends AppCompatActivity implements
         finish();
     }
 
-    private SwitchCompat enableNearBySwitch;
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_main, menu);
 
-        MenuItem enableNearByMenuItem = menu.findItem(R.id.action_enable_nearby_switch);
+        MenuItem enableNearByMenuItem = menu.findItem(R.id.action_enable_nearby);
         enableNearByMenuItem.setActionView(R.layout.switch_layout);
 
         enableNearBySwitch = enableNearByMenuItem.getActionView().findViewById(R.id.switchForActionBar);
@@ -668,7 +672,13 @@ public class MainActivity extends AppCompatActivity implements
             }
             case R.id.action_enable_nearby: {
                 getCurrentUser().toggleSeeNearbyEnabled();
-                saveCurrentUser(); // saveCurrentUser() calls getChatrooms when it has finished saving the current user
+                saveCurrentUser();
+                // saveCurrentUser() calls getChatrooms when it has finished saving the current user
+                enableNearBySwitch.setChecked(getCurrentUser().getSeeNearbyEnabled());
+                return true;
+            }
+            case R.id.action_change_theme: {
+                showColorPicker();
                 return true;
             }
             default: {
@@ -676,6 +686,11 @@ public class MainActivity extends AppCompatActivity implements
             }
         }
 
+    }
+
+    private void showColorPicker() {
+        Intent intent = new Intent(this, ThemeActivity.class);
+        startActivityForResult(intent, Constants.SELECT_THEME);
     }
 
     private void showDialog() {
