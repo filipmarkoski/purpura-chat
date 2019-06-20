@@ -1,6 +1,5 @@
 package com.purpura.googlemaps2018.models;
 
-import android.graphics.Bitmap;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.support.annotation.NonNull;
@@ -15,10 +14,8 @@ public class ChatMessage implements Parcelable {
     private String imageUrl;
     private Date timestamp;
 
-    private Bitmap image;
-
     public ChatMessage() {
-
+        this.timestamp = new Date();
     }
 
     public ChatMessage(User user, String message, String message_id, String imageUrl, Date timestamp) {

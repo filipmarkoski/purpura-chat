@@ -598,28 +598,13 @@ public class ChatroomActivity extends AppCompatActivity implements
             ChatMessage chatMessage = new ChatMessage();
             chatMessage.setMessage(message);
             chatMessage.setMessage_id(chatMessageDoc.getId());
-            chatMessage.setTimestamp(null);
 
             User user = ((UserClient) (getApplicationContext())).getUser();
             Log.d(TAG, "insertNewMessage: retrieved user client: " + user.toString());
             chatMessage.setUser(user);
 
 
-            chatMessageDoc.set(chatMessage).addOnCompleteListener(new OnCompleteListener<Void>() {
-                @Override
-                public void onComplete(@NonNull Task<Void> task) {
-                    if (task.isSuccessful()) {
-
-
-                        getChatMessages();
-
-                        // TODO: use Firebase Messaging To Send A Notification Message
-                    } else {
-                        View parentLayout = findViewById(android.R.id.content);
-                        Snackbar.make(parentLayout, "Something went wrong.", Snackbar.LENGTH_SHORT).show();
-                    }
-                }
-            });
+            chatMessageDoc.set(chatMessage);
 
             chatroomActivity.editTextMessage.setText("");
             mMessageIds.add(chatMessage.getMessage_id());

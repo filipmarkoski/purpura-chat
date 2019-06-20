@@ -60,27 +60,22 @@ public class ChatMessageRecyclerAdapter extends RecyclerView.Adapter<ChatMessage
         User user = chatMessage.getUser();
         SimpleDateFormat format = new SimpleDateFormat("MMMM dd, yyyy");
         if (FirebaseAuth.getInstance().getUid().equals(user.getUser_id())) {
-            // current user
             ((ViewHolder) holder).username.setTextColor(ContextCompat.getColor(mContext, R.color.colorAccent));
-
         } else {
             ((ViewHolder) holder).username.setTextColor(ContextCompat.getColor(mContext, R.color.colorPrimaryDark));
         }
+
         String nickname = nicknames.get(user);
-        if (nickname != null) {
+        if (nickname != null)
             ((ViewHolder) holder).username.setText(nickname);
-        } else {
+        else
             ((ViewHolder) holder).username.setText(user.getUsername());
-        }
+
         if (chatMessage.getTimestamp() != null)
             ((ViewHolder) holder).timestamp.setText(format.format(chatMessage.getTimestamp()));
-        if (chatMessage.hasMessage()) {
-            Log.d(TAG, "onBindViewHolder: chatMessage.hasMessage=true");
+        if (chatMessage.hasMessage())
             ((ViewHolder) holder).message.setText(chatMessage.getMessage());
-        } else {
-            Log.d(TAG, "onBindViewHolder: chatMessage.hasMessage=false");
-            ((ViewHolder) holder).message.setVisibility(View.GONE);
-        }
+
 
         if (chatMessage.hasImageUrl()) {
             Log.d(TAG, "onBindViewHolder: chatMessage.hasImageUrl=true");
@@ -114,7 +109,9 @@ public class ChatMessageRecyclerAdapter extends RecyclerView.Adapter<ChatMessage
                     });
 
 
-        } /* else: by default the imageView visibility is set to View.GONE */
+        } else {
+            ((ViewHolder) holder).image.setVisibility(View.GONE);
+        }
     }
 
 
