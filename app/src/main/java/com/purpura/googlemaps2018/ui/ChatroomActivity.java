@@ -1359,26 +1359,28 @@ public class ChatroomActivity extends AppCompatActivity implements
             Log.d(TAG, message);
 
             if (ActivityCompat.shouldShowRequestPermissionRationale(activity, permission)) {
-                String[] split = permission.split(".");
-                String permissionName = split[split.length - 1];
+                String[] split = permission.split("\\.");
+                if (split.length > 0) {
+                    String permissionName = split[split.length - 1];
 
-                String snackbarText = String.format("%s permission is needed", permissionName);
-                Snackbar.make(findViewById(android.R.id.content), snackbarText, Snackbar.LENGTH_INDEFINITE)
-                        .setAction("ENABLE", new View.OnClickListener() {
-                            @Override
-                            public void onClick(View v) {
-                                ActivityCompat.requestPermissions(activity,
-                                        new String[]{permission},
-                                        permissionRequest);
-                            }
-                        })
-                        .show();
-
+                    String snackbarText = String.format("%s permission is needed", permissionName);
+                    Snackbar.make(findViewById(android.R.id.content), snackbarText, Snackbar.LENGTH_INDEFINITE)
+                            .setAction("ENABLE", new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    ActivityCompat.requestPermissions(activity,
+                                            new String[]{permission},
+                                            permissionRequest);
+                                }
+                            })
+                            .show();
+                }
             } else {
                 ActivityCompat.requestPermissions(activity,
                         new String[]{permission},
                         permissionRequest);
             }
+
 
         }
         return false;

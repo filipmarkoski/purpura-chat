@@ -677,10 +677,6 @@ public class MainActivity extends AppCompatActivity implements
                 enableNearBySwitch.setChecked(getCurrentUser().getSeeNearbyEnabled());
                 return true;
             }
-            case R.id.action_change_theme: {
-                showColorPicker();
-                return true;
-            }
             default: {
                 return super.onOptionsItemSelected(item);
             }
@@ -688,14 +684,6 @@ public class MainActivity extends AppCompatActivity implements
 
     }
 
-    private void showColorPicker() {
-        Intent intent = new Intent(this, ThemeActivity.class);
-        startActivityForResult(intent, Constants.SELECT_THEME);
-    }
-
-    private void showDialog() {
-        mProgressBar.setVisibility(View.VISIBLE);
-    }
 
     private void hideDialog() {
         mProgressBar.setVisibility(View.GONE);

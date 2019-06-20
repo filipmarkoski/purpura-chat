@@ -61,10 +61,10 @@ public class ChatMessageRecyclerAdapter extends RecyclerView.Adapter<ChatMessage
         SimpleDateFormat format = new SimpleDateFormat("MMMM dd, yyyy");
         if (FirebaseAuth.getInstance().getUid().equals(user.getUser_id())) {
             // current user
-            ((ViewHolder) holder).username.setTextColor(ContextCompat.getColor(mContext, R.color.green1));
+            ((ViewHolder) holder).username.setTextColor(ContextCompat.getColor(mContext, R.color.colorAccent));
 
         } else {
-            ((ViewHolder) holder).username.setTextColor(ContextCompat.getColor(mContext, R.color.blue2));
+            ((ViewHolder) holder).username.setTextColor(ContextCompat.getColor(mContext, R.color.colorPrimaryDark));
         }
         String nickname = nicknames.get(user);
         if (nickname != null) {
