@@ -26,7 +26,6 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.CheckBox;
-import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.Toast;
@@ -37,7 +36,6 @@ import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.CollectionReference;
@@ -79,11 +77,7 @@ public class MainActivity extends AppCompatActivity implements
 
     private static final String TAG = "MainActivity";
     private final MainActivity mainActivity = this;
-
-    //widgets
     private ProgressBar mProgressBar;
-
-    //vars
     private ArrayList<Chatroom> mChatrooms = new ArrayList<>();
     private Set<String> mChatroomIds = new HashSet<>();
     private ChatroomRecyclerAdapter mChatroomRecyclerAdapter;
@@ -138,10 +132,6 @@ public class MainActivity extends AppCompatActivity implements
                     }
                 })
                 .build();
-
-
-        // TODO: Firebase Messaging Service Instance Token
-        // getFirebaseInstanceIdToken();
     }
 
     private void initSupportActionBar() {
@@ -241,13 +231,6 @@ public class MainActivity extends AppCompatActivity implements
                             Toast.makeText(mainActivity, "Failed to get current user", Toast.LENGTH_SHORT).show();
                         }
                     })
-                    .addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
-                        @Override
-                        public void onSuccess(DocumentSnapshot documentSnapshot) {
-                            Log.d(TAG, "onSuccess: ");
-                            Toast.makeText(mainActivity, "Succesfully accessed current user details", Toast.LENGTH_SHORT).show();
-                        }
-                    })
                     .addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
                         @Override
                         public void onComplete(@NonNull Task<DocumentSnapshot> task) {
@@ -276,53 +259,26 @@ public class MainActivity extends AppCompatActivity implements
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED /*&&
             ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED*/) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
+            // TODO: Consider calling ActivityCompat#requestPermissions
             // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults)
             // to handle the case where the user grants the permission. See the documentation
             // for ActivityCompat#requestPermissions for more details.
             return;
         }
 
         mFusedLocationClient.getLastLocation()
-                .addOnFailureListener(new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception e) {
-                        Log.e(TAG, "onFailure: ", e);
-                    }
-                })
-                .addOnSuccessListener(new OnSuccessListener<Location>() {
-                    @Override
-                    public void onSuccess(Location location) {
-                        if (location != null) {
-                            Log.d(TAG, "onSuccess: " + location.toString());
-                            // Toast.makeText(mainActivity, location.toString(), Toast.LENGTH_SHORT).show();
-                        } else {
-                            // Toast.makeText(mainActivity, "Location is null", Toast.LENGTH_SHORT).show();
-                        }
-                    }
-                })
-                .addOnCompleteListener(new OnCompleteListener<android.location.Location>() {
-                    @Override
-                    public void onComplete(@NonNull Task<android.location.Location> task) {
-
-                        Log.d(TAG, "onComplete: ");
-
-                        if (task.isSuccessful() && task.getResult() != null) {
-                            Location location = task.getResult();
-                            /*Toast.makeText(mainActivity, location.toString(), Toast.LENGTH_SHORT).show();*/
-                            GeoPoint geoPoint = new GeoPoint(location.getLatitude(), location.getLongitude());
-                            mUserLocation.setGeo_point(geoPoint);
-                            saveUserLocation();
-                            startLocationService();
-                            // getChatrooms();
-                        }
+                .addOnFailureListener(e -> Log.e(TAG, "onFailure: ", e))
+                .addOnCompleteListener(task -> {
+                    Log.d(TAG, "onComplete: ");
+                    if (task.isSuccessful() && task.getResult() != null) {
+                        Location location = task.getResult();
+                        GeoPoint geoPoint = new GeoPoint(location.getLatitude(), location.getLongitude());
+                        mUserLocation.setGeo_point(geoPoint);
+                        saveUserLocation();
+                        startLocationService();
                     }
                 });
-
-
     }
 
 
@@ -333,16 +289,7 @@ public class MainActivity extends AppCompatActivity implements
                     .collection(getString(R.string.collection_user_locations))
                     .document(FirebaseAuth.getInstance().getUid());
 
-            locationRef.set(mUserLocation).addOnCompleteListener(new OnCompleteListener<Void>() {
-                @Override
-                public void onComplete(@NonNull Task<Void> task) {
-                    if (task.isSuccessful()) {
-                        Log.d(TAG, "saveUserLocation: \ninserted user location into database." +
-                                "\n latitude: " + mUserLocation.getGeo_point().getLatitude() +
-                                "\n longitude: " + mUserLocation.getGeo_point().getLongitude());
-                    }
-                }
-            });
+            locationRef.set(mUserLocation);
         }
     }
 
@@ -359,12 +306,6 @@ public class MainActivity extends AppCompatActivity implements
                         @Override
                         public void onFailure(@NonNull Exception e) {
                             Toast.makeText(mainActivity, "Saving current user failed", Toast.LENGTH_SHORT).show();
-                        }
-                    })
-                    .addOnSuccessListener(new OnSuccessListener<Void>() {
-                        @Override
-                        public void onSuccess(Void aVoid) {
-                            Toast.makeText(mainActivity, "Saving current user succeeded", Toast.LENGTH_SHORT).show();
                         }
                     })
                     .addOnCompleteListener(new OnCompleteListener<Void>() {
@@ -386,17 +327,14 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     public boolean isServicesOK() {
-        // TODO: What is ServicesOK ?
-        Log.d(TAG, "isServicesOK: checking google services version");
 
+        Log.d(TAG, "isServicesOK: checking google services version");
         int available = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(MainActivity.this);
 
         if (available == ConnectionResult.SUCCESS) {
-            //everything is fine and the user can make map requests
             Log.d(TAG, "isServicesOK: Google Play Services is working");
             return true;
         } else if (GoogleApiAvailability.getInstance().isUserResolvableError(available)) {
-            //an error occured but we can resolve it
             Log.d(TAG, "isServicesOK: an error occured but we can fix it");
             Dialog dialog = GoogleApiAvailability.getInstance().getErrorDialog(MainActivity.this, available, Constants.ERROR_DIALOG_REQUEST);
             dialog.show();
@@ -442,9 +380,7 @@ public class MainActivity extends AppCompatActivity implements
                 }
                 break;
             }
-
         }
-
     }
 
 
@@ -483,7 +419,6 @@ public class MainActivity extends AppCompatActivity implements
                         if (FirebaseAuth.getInstance().getCurrentUser() != null && mUserLocation != null) {
                             String chatroomId = chatroom.getChatroom_id();
                             String email = FirebaseAuth.getInstance().getCurrentUser().getEmail();
-                            // TODO: currentUser needs to have an age. Modify LoginActivity
                             User user = getCurrentUser();
                             Integer currentUserAge = user.getAge();
                             Boolean currentUserSeeNearbyEnabled = user.getSeeNearbyEnabled();
@@ -494,14 +429,13 @@ public class MainActivity extends AppCompatActivity implements
                                 saveCurrentUser();
                             }
 
-                            String title = chatroom.getTitle();
 
                             Boolean isAccessibleToUser = chatroom.isAccessable(email);
                             Boolean isNearyBy = chatroom.isPublicAndBusiness() && currentUserSeeNearbyEnabled && chatroom.checkProximity(mUserLocation.getGeo_point());
-                            Boolean isAlreadyInList = (Boolean) mChatroomIds.contains(chatroomId);
-                            Boolean isAgeAppropriate = (Boolean) chatroom.isInAgeRangeInclusive(currentUserAge);
+                            Boolean isAlreadyInList = mChatroomIds.contains(chatroomId);
+                            Boolean isAgeAppropriate = chatroom.isInAgeRangeInclusive(currentUserAge);
 
-                            Boolean isGranted = (Boolean) (isAccessibleToUser || isNearyBy) && !isAlreadyInList && isAgeAppropriate;
+                            Boolean isGranted = (isAccessibleToUser || isNearyBy) && !isAlreadyInList && isAgeAppropriate;
 
                             if (isGranted) {
                                 mChatroomIds.add(chatroomId);
@@ -534,29 +468,17 @@ public class MainActivity extends AppCompatActivity implements
         chatroom.setChatroom_id(newChatroomRef.getId());
 
         newChatroomRef.set(chatroom)
-                .addOnFailureListener(new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception e) {
-                        Log.e(TAG, "onFailure: ", e);
-                    }
+                .addOnFailureListener(e -> {
+                    View parentLayout = findViewById(android.R.id.content);
+                    Snackbar.make(parentLayout, "Unable to create chatroom", Snackbar.LENGTH_SHORT).show();
                 })
-                .addOnSuccessListener(new OnSuccessListener<Void>() {
-                    @Override
-                    public void onSuccess(Void aVoid) {
-                        Toast.makeText(mainActivity, "onSuccess", Toast.LENGTH_SHORT).show();
-                    }
-                })
-                .addOnCompleteListener(new OnCompleteListener<Void>() {
-                    @Override
-                    public void onComplete(@NonNull Task<Void> task) {
-                        hideDialog();
-
-                        if (task.isSuccessful()) {
-                            navChatroomActivity(chatroom);
-                        } else {
-                            View parentLayout = findViewById(android.R.id.content);
-                            Snackbar.make(parentLayout, "Something went wrong.", Snackbar.LENGTH_SHORT).show();
-                        }
+                .addOnCompleteListener(task -> {
+                    hideDialog();
+                    if (task.isSuccessful()) {
+                        navChatroomActivity(chatroom);
+                    } else {
+                        View parentLayout = findViewById(android.R.id.content);
+                        Snackbar.make(parentLayout, "Something went wrong.", Snackbar.LENGTH_SHORT).show();
                     }
                 });
     }
@@ -573,47 +495,34 @@ public class MainActivity extends AppCompatActivity implements
 
         View createChatroomDialog = View.inflate(this, R.layout.private_checkbox, null);
 
-        EditText editChatroomName = (EditText) createChatroomDialog.findViewById(R.id.chatRoomName);
-        EditText editChatroomAgeFrom = (EditText) createChatroomDialog.findViewById(R.id.edit_age_from);
-        EditText editChatroomAgeTo = (EditText) createChatroomDialog.findViewById(R.id.edit_age_to);
+        EditText editChatroomName = createChatroomDialog.findViewById(R.id.chatRoomName);
+        EditText editChatroomAgeFrom = createChatroomDialog.findViewById(R.id.edit_age_from);
+        EditText editChatroomAgeTo = createChatroomDialog.findViewById(R.id.edit_age_to);
 
         editChatroomAgeFrom.setText(Constants.DEFAULT_CHATROOM_AGE_FROM.toString());
         editChatroomAgeTo.setText(Constants.DEFAULT_CHATROOM_AGE_TO.toString());
 
         final Boolean[] isPrivate = {false};
 
-        CheckBox checkBox = (CheckBox) createChatroomDialog.findViewById(R.id.checkbox);
-        checkBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                isPrivate[0] = isChecked;
-            }
-        });
+        CheckBox checkBox = createChatroomDialog.findViewById(R.id.checkbox);
+        checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> isPrivate[0] = isChecked);
 
         checkBox.setText("Private chatroom");
         builder.setView(createChatroomDialog).setCancelable(false);
 
-        builder.setPositiveButton("CREATE", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
+        builder.setPositiveButton("CREATE", (dialog, which) -> {
 
-                String chatroomName = editChatroomName.getText().toString();
-                Integer chatroomAgeFrom = Integer.parseInt(editChatroomAgeFrom.getText().toString());
-                Integer chatroomAgeTo = Integer.parseInt(editChatroomAgeTo.getText().toString());
+            String chatroomName = editChatroomName.getText().toString();
+            Integer chatroomAgeFrom = Integer.parseInt(editChatroomAgeFrom.getText().toString());
+            Integer chatroomAgeTo = Integer.parseInt(editChatroomAgeTo.getText().toString());
 
-                if (!chatroomName.equals("")) {
-                    createChatroom(chatroomName, isPrivate[0], chatroomAgeFrom, chatroomAgeTo);
-                } else {
-                    Toast.makeText(MainActivity.this, "Enter a chatroom name", Toast.LENGTH_SHORT).show();
-                }
+            if (!chatroomName.equals("")) {
+                createChatroom(chatroomName, isPrivate[0], chatroomAgeFrom, chatroomAgeTo);
+            } else {
+                Toast.makeText(MainActivity.this, "Enter a chatroom name", Toast.LENGTH_SHORT).show();
             }
         });
-        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                dialog.cancel();
-            }
-        });
+        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
 
         builder.show();
     }
@@ -645,14 +554,11 @@ public class MainActivity extends AppCompatActivity implements
         enableNearBySwitch = enableNearByMenuItem.getActionView().findViewById(R.id.switchForActionBar);
         String switchCompatText = getString(R.string.action_enable_nearby);
         enableNearBySwitch.setText(switchCompatText);
-        enableNearBySwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                Log.d(TAG, "onCheckedChanged: ");
-                Toast.makeText(mainActivity, "Near By=" + isChecked, Toast.LENGTH_SHORT).show();
-                getCurrentUser().toggleSeeNearbyEnabled();
-                saveCurrentUser(); // saveCurrentUser() calls getChatrooms when it has finished saving the current user
-            }
+        enableNearBySwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            Log.d(TAG, "onCheckedChanged: ");
+            Toast.makeText(mainActivity, "Near By=" + isChecked, Toast.LENGTH_SHORT).show();
+            getCurrentUser().toggleSeeNearbyEnabled();
+            saveCurrentUser(); // saveCurrentUser() calls getChatrooms when it has finished saving the current user
         });
 
         return true;
@@ -702,7 +608,6 @@ public class MainActivity extends AppCompatActivity implements
                         // Get new Instance ID token
                         String token = task.getResult().getToken();
 
-
                         // Log and toast
                         String msg = getString(R.string.msg_token_fmt, token);
                         Log.d(TAG, msg);
@@ -716,7 +621,6 @@ public class MainActivity extends AppCompatActivity implements
     /**
      * Permission-related Code
      */
-
 
     private boolean checkForegroundServicePermissionGranted() {
         String permission = android.Manifest.permission.FOREGROUND_SERVICE;
@@ -746,14 +650,9 @@ public class MainActivity extends AppCompatActivity implements
 
                 String snackbarText = String.format("%s permission is needed", permissionName);
                 Snackbar.make(findViewById(android.R.id.content), snackbarText, Snackbar.LENGTH_INDEFINITE)
-                        .setAction("ENABLE", new View.OnClickListener() {
-                            @Override
-                            public void onClick(View v) {
-                                ActivityCompat.requestPermissions(activity,
-                                        new String[]{permission},
-                                        permissionRequest);
-                            }
-                        })
+                        .setAction("ENABLE", v -> ActivityCompat.requestPermissions(activity,
+                                new String[]{permission},
+                                permissionRequest))
                         .show();
 
             } else {
@@ -768,7 +667,7 @@ public class MainActivity extends AppCompatActivity implements
 
     @Override
     public void onRequestPermissionsResult(int requestCode,
-                                           @NonNull String permissions[],
+                                           @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
         Log.d(TAG, "onRequestPermissionsResult: ");
 

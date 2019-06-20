@@ -224,9 +224,7 @@ public class ChatroomActivity extends AppCompatActivity implements
     private void storeImageDownloadUrlToCloudFirestore(String imageDownloadURL) {
         Log.d(TAG, "storeImageDownloadUrlToCloudFirestore: ");
 
-        /* Make sure you have the image */
         if (imageDownloadURL != null) {
-            // Store the imageUrl to Cloud Firestore
             CollectionReference chatroomChatMessagesRef = mDb
                     .collection(getString(R.string.collection_chatrooms))
                     .document(mChatroom.getChatroom_id())
@@ -241,24 +239,7 @@ public class ChatroomActivity extends AppCompatActivity implements
             chatMessage.setMessage_id(chatMessageId);
             chatMessage.setUser(user);
             chatMessage.setImageUrl(imageDownloadURL);
-
-            final Task<Void> storeChatMessageTask = chatMessageRef.set(chatMessage);
-
-            storeChatMessageTask.addOnSuccessListener(new OnSuccessListener<Void>() {
-                @Override
-                public void onSuccess(Void aVoid) {
-                    String message = "storeImageDownloadUrlToCloudFirestore: onSuccess ";
-                    Log.d(TAG, message);
-                    Toast.makeText(chatroomActivity, message, Toast.LENGTH_SHORT).show();
-                }
-            }).addOnFailureListener(new OnFailureListener() {
-                @Override
-                public void onFailure(@NonNull Exception e) {
-                    String message = "storeImageDownloadUrlToCloudFirestore: onFailure ";
-                    Log.d(TAG, message);
-                    Toast.makeText(chatroomActivity, message, Toast.LENGTH_SHORT).show();
-                }
-            });
+            chatMessageRef.set(chatMessage);
 
         }
     }

@@ -28,13 +28,9 @@ import java.util.HashMap;
 public class ChatMessageRecyclerAdapter extends RecyclerView.Adapter<ChatMessageRecyclerAdapter.ViewHolder> {
 
     private static final String TAG = "ChatMessageRecyclerAdap";
-
-    private ArrayList<ChatMessage> mMessages = new ArrayList<>();
-
+    private ArrayList<ChatMessage> mMessages;
     private Context mContext;
-
     private Resources.Theme theme;
-
     private HashMap<User, String> nicknames;
 
     public ChatMessageRecyclerAdapter(Context context, ArrayList<ChatMessage> messages, Resources.Theme theme, ArrayList<UserSetting> settings) {
@@ -59,7 +55,7 @@ public class ChatMessageRecyclerAdapter extends RecyclerView.Adapter<ChatMessage
         ChatMessage chatMessage = mMessages.get(position);
         User user = chatMessage.getUser();
         showUser(holder, user);
-        showImage(holder, chatMessage);
+        showMessage(holder, chatMessage);
     }
 
     private void showUser(@NonNull ViewHolder holder, User user) {
@@ -79,15 +75,15 @@ public class ChatMessageRecyclerAdapter extends RecyclerView.Adapter<ChatMessage
 
         SimpleDateFormat format = new SimpleDateFormat("MMMM dd, yyyy");
         if (chatMessage.getTimestamp() != null)
-            ((ViewHolder) holder).timestamp.setText(format.format(chatMessage.getTimestamp()));
+            holder.timestamp.setText(format.format(chatMessage.getTimestamp()));
         if (chatMessage.hasMessage())
-            ((ViewHolder) holder).message.setText(chatMessage.getMessage());
+            holder.message.setText(chatMessage.getMessage());
 
 
         if (chatMessage.hasImageUrl()) {
             showImage(holder, chatMessage);
         } else {
-            ((ViewHolder) holder).image.setVisibility(View.GONE);
+            holder.image.setVisibility(View.GONE);
         }
     }
 

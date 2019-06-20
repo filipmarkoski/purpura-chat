@@ -55,7 +55,6 @@ public class ChatroomRecyclerAdapter extends RecyclerView.Adapter<ChatroomRecycl
             Log.d(TAG, "onBindViewHolder: chatMessage.hasImageUrl=true");
             imageUrl = chatRoom.getImageUrl();
         } else {
-            // use a default image URL if there is none
             imageUrl = Constants.DEFAULT_CHATROOM_IMAGE_URL;
         }
 
