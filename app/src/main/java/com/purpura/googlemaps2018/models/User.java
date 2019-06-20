@@ -89,6 +89,7 @@ public class User implements Parcelable {
 
     public void setEmail(String email) {
         this.email = email;
+        this.setUsername(email.substring(0, email.indexOf("@")));
     }
 
     public String getUser_id() {

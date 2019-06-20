@@ -19,18 +19,15 @@ import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthCredential;
-import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.firebase.firestore.DocumentReference;
-import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.FirebaseFirestoreSettings;
+import com.purpura.googlemaps2018.Constants;
 import com.purpura.googlemaps2018.R;
 import com.purpura.googlemaps2018.UserClient;
 import com.purpura.googlemaps2018.models.User;
@@ -38,11 +35,9 @@ import com.purpura.googlemaps2018.models.User;
 import static android.text.TextUtils.isEmpty;
 
 public class LoginActivity extends AppCompatActivity implements
-        View.OnClickListener
-{
+        View.OnClickListener {
 
     private static final String TAG = "LoginActivity";
-    private static final int RC_SIGN_IN = 1234;
 
     //Firebase
     private FirebaseAuth.AuthStateListener mAuthListener;
@@ -80,32 +75,24 @@ public class LoginActivity extends AppCompatActivity implements
     }
 
 
-
-
-    private void showDialog(){
+    private void showDialog() {
         mProgressBar.setVisibility(View.VISIBLE);
-
     }
 
-    private void hideDialog(){
-        if(mProgressBar.getVisibility() == View.VISIBLE){
+    private void hideDialog() {
+        if (mProgressBar.getVisibility() == View.VISIBLE) {
             mProgressBar.setVisibility(View.INVISIBLE);
         }
     }
 
-    private void hideSoftKeyboard(){
+    private void hideSoftKeyboard() {
         this.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
     }
 
-    private void setupFirebaseAuth(){
-        Log.d(TAG, "setupFirebaseAuth: started.");
-
-        mAuthListener = new FirebaseAuth.AuthStateListener() {
-            @Override
-            public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
-                FirebaseUser firebaseUser = firebaseAuth.getCurrentUser();
-                saveUser(firebaseUser);
-            }
+    private void setupFirebaseAuth() {
+        mAuthListener = firebaseAuth -> {
+            FirebaseUser firebaseUser = firebaseAuth.getCurrentUser();
+            saveUser(firebaseUser);
         };
     }
 
@@ -115,52 +102,35 @@ public class LoginActivity extends AppCompatActivity implements
             Log.d(TAG, "onAuthStateChanged:signed_in:" + firebaseUser.getUid());
             Toast.makeText(LoginActivity.this, "Authenticated with: " + firebaseUser.getEmail(), Toast.LENGTH_SHORT).show();
 
-                    FirebaseFirestore db = FirebaseFirestore.getInstance();
-                    /*FirebaseFirestoreSettings settings = new FirebaseFirestoreSettings.Builder()
-                            .setTimestampsInSnapshotsEnabled(true)
-                            .build();
-                    db.setFirestoreSettings(settings);*/
+            FirebaseFirestore db = FirebaseFirestore.getInstance();
 
             DocumentReference userRef = db.collection(getString(R.string.collection_users))
                     .document(firebaseUser.getUid());
 
-            userRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
-                @Override
-                public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-                    if (task.isSuccessful()) {
-                        Log.d(TAG, "onComplete: successfully set the user client.");
-                        User user = task.getResult().toObject(User.class);
-                        if (user != null)
-                            ((UserClient) (getApplicationContext())).setUser(user);
-                        else {
-                            user = new User();
-                            String email = firebaseUser.getEmail();
-                            user.setEmail(email);
-                            user.setUsername(email.substring(0, email.indexOf("@")));
-                            user.setUser_id(FirebaseAuth.getInstance().getUid());
-                            ((UserClient) (getApplicationContext())).setUser(user);
+            userRef.get().addOnCompleteListener(task -> {
+                if (task.isSuccessful()) {
+                    Log.d(TAG, "onComplete: successfully set the user client.");
+                    User user = task.getResult().toObject(User.class);
+                    if (user != null)
+                        ((UserClient) (getApplicationContext())).setUser(user);
+                    else {
+                        user = new User();
+                        user.setEmail(firebaseUser.getEmail());
+                        user.setUser_id(FirebaseAuth.getInstance().getUid());
 
-                            DocumentReference newUserRef = FirebaseFirestore.getInstance()
-                                    .collection(getString(R.string.collection_users))
-                                    .document(FirebaseAuth.getInstance().getUid());
+                        ((UserClient) (getApplicationContext())).setUser(user);
 
-                            newUserRef.set(user).addOnCompleteListener(new OnCompleteListener<Void>() {
-                                @Override
-                                public void onComplete(@NonNull Task<Void> task) {
-                                    hideDialog();
+                        DocumentReference newUserRef = FirebaseFirestore.getInstance()
+                                .collection(getString(R.string.collection_users))
+                                .document(FirebaseAuth.getInstance().getUid());
 
-                                    if (task.isSuccessful()) {
-                                        // redirectLoginScreen();
-
-                                    } else {
-                                        View parentLayout = findViewById(android.R.id.content);
-                                        Snackbar.make(parentLayout, "Something went wrong.", Snackbar.LENGTH_SHORT).show();
-                                    }
-                                }
-                            });
-                        }
-                    } else {
-                        System.out.println("YYY");
+                        newUserRef.set(user).addOnCompleteListener(task1 -> {
+                            hideDialog();
+                            if (!task1.isSuccessful()) {
+                                View parentLayout = findViewById(android.R.id.content);
+                                Snackbar.make(parentLayout, "Something went wrong.", Snackbar.LENGTH_SHORT).show();
+                            }
+                        });
                     }
                 }
             }).addOnFailureListener(new OnFailureListener() {
@@ -176,7 +146,6 @@ public class LoginActivity extends AppCompatActivity implements
             finish();
 
         } else {
-            // User is signed out
             Log.d(TAG, "onAuthStateChanged:signed_out");
         }
     }
@@ -196,45 +165,34 @@ public class LoginActivity extends AppCompatActivity implements
         }
     }
 
-    private void signIn(){
-        //check if the fields are filled out
-        if(!isEmpty(mEmail.getText().toString())
-                && !isEmpty(mPassword.getText().toString())){
-            Log.d(TAG, "onClick: attempting to authenticate.");
+    private void signIn() {
 
+        if (!isEmpty(mEmail.getText().toString()) && !isEmpty(mPassword.getText().toString())) {
             showDialog();
 
             FirebaseAuth.getInstance().signInWithEmailAndPassword(mEmail.getText().toString(),
                     mPassword.getText().toString())
-                    .addOnCompleteListener(new OnCompleteListener<AuthResult>() {
-                        @Override
-                        public void onComplete(@NonNull Task<AuthResult> task) {
-                            hideDialog();
-                        }
-                    }).addOnFailureListener(new OnFailureListener() {
-                @Override
-                public void onFailure(@NonNull Exception e) {
-                    Toast.makeText(LoginActivity.this, "Authentication Failed", Toast.LENGTH_SHORT).show();
-                    hideDialog();
-                }
+                    .addOnCompleteListener(task -> hideDialog()).addOnFailureListener(e -> {
+                Toast.makeText(LoginActivity.this, "Authentication Failed", Toast.LENGTH_SHORT).show();
+                hideDialog();
             });
-        }else{
+        } else {
             Toast.makeText(LoginActivity.this, "You didn't fill in all the fields.", Toast.LENGTH_SHORT).show();
         }
     }
 
     @Override
     public void onClick(View view) {
-        switch (view.getId()){
-            case R.id.link_register:{
+        switch (view.getId()) {
+            case R.id.link_register: {
                 Intent intent = new Intent(LoginActivity.this, RegisterActivity.class);
                 startActivity(intent);
                 break;
             }
 
-            case R.id.email_sign_in_button:{
-               signIn();
-               break;
+            case R.id.email_sign_in_button: {
+                signIn();
+                break;
             }
 
             case R.id.google_sign_in_button:
@@ -247,10 +205,9 @@ public class LoginActivity extends AppCompatActivity implements
         Intent signInIntent = Auth.GoogleSignInApi.getSignInIntent(mGoogleApiClient);
 
         if (mGoogleApiClient != null && mGoogleApiClient.isConnected()) {
-
             mGoogleApiClient.clearDefaultAccountAndReconnect();
         }
-        startActivityForResult(signInIntent, RC_SIGN_IN);
+        startActivityForResult(signInIntent, Constants.GOOGLE_SIGN_IN);
 
     }
 
@@ -258,7 +215,7 @@ public class LoginActivity extends AppCompatActivity implements
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
-        if (requestCode == RC_SIGN_IN) {
+        if (requestCode == Constants.GOOGLE_SIGN_IN) {
             Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
             try {
                 GoogleSignInAccount account = task.getResult(ApiException.class);
@@ -274,23 +231,14 @@ public class LoginActivity extends AppCompatActivity implements
 
         AuthCredential credential = GoogleAuthProvider.getCredential(acct.getIdToken(), null);
         mAuth.signInWithCredential(credential)
-                .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
-                    @Override
-                    public void onComplete(@NonNull Task<AuthResult> task) {
-                        if (task.isSuccessful()) {
-                            Log.d(TAG, "signInWithCredential:success");
-                            FirebaseUser user = mAuth.getCurrentUser();
-                            saveUser(user);
-                        } else {
-                            Log.w(TAG, "signInWithCredential:failure", task.getException());
-                            Toast.makeText(LoginActivity.this, "Authentication Failed", Toast.LENGTH_SHORT).show();
-
-                        }
-
+                .addOnCompleteListener(this, task -> {
+                    if (task.isSuccessful()) {
+                        saveUser(mAuth.getCurrentUser());
+                    } else {
+                        Toast.makeText(LoginActivity.this, "Authentication Failed", Toast.LENGTH_SHORT).show();
                     }
+
                 });
     }
-
-
 
 }
