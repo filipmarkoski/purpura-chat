@@ -755,16 +755,6 @@ public class ChatroomActivity extends AppCompatActivity implements
                 }
             }
         });
-
-       /*
-       TO DO: Set appropriate message in the menu
-       MenuItem toggleLocation = findViewById(R.id.action_toggle_share_location);
-        if(nowEnabled){
-            toggleLocation.setTitle(getString(R.string.disable_location));
-        } else {
-            toggleLocation.setTitle(getString(R.string.enable_location));
-        }*/
-
     }
 
     private User getCurrentUser() {

@@ -58,19 +58,26 @@ public class ChatMessageRecyclerAdapter extends RecyclerView.Adapter<ChatMessage
         Log.d(TAG, "onBindViewHolder: ");
         ChatMessage chatMessage = mMessages.get(position);
         User user = chatMessage.getUser();
-        SimpleDateFormat format = new SimpleDateFormat("MMMM dd, yyyy");
-        if (FirebaseAuth.getInstance().getUid().equals(user.getUser_id())) {
-            ((ViewHolder) holder).username.setTextColor(ContextCompat.getColor(mContext, R.color.colorAccent));
-        } else {
-            ((ViewHolder) holder).username.setTextColor(ContextCompat.getColor(mContext, R.color.colorPrimaryDark));
-        }
+        showUser(holder, user);
+        showImage(holder, chatMessage);
+    }
 
+    private void showUser(@NonNull ViewHolder holder, User user) {
+        if (FirebaseAuth.getInstance().getUid().equals(user.getUser_id())) {
+            holder.username.setTextColor(ContextCompat.getColor(mContext, R.color.colorAccent));
+        } else {
+            holder.username.setTextColor(ContextCompat.getColor(mContext, R.color.colorPrimaryDark));
+        }
         String nickname = nicknames.get(user);
         if (nickname != null)
-            ((ViewHolder) holder).username.setText(nickname);
+            holder.username.setText(nickname);
         else
-            ((ViewHolder) holder).username.setText(user.getUsername());
+            holder.username.setText(user.getUsername());
+    }
 
+    public void showMessage(ViewHolder holder, ChatMessage chatMessage) {
+
+        SimpleDateFormat format = new SimpleDateFormat("MMMM dd, yyyy");
         if (chatMessage.getTimestamp() != null)
             ((ViewHolder) holder).timestamp.setText(format.format(chatMessage.getTimestamp()));
         if (chatMessage.hasMessage())
@@ -78,42 +85,41 @@ public class ChatMessageRecyclerAdapter extends RecyclerView.Adapter<ChatMessage
 
 
         if (chatMessage.hasImageUrl()) {
-            Log.d(TAG, "onBindViewHolder: chatMessage.hasImageUrl=true");
-            String imageUrl = chatMessage.getImageUrl();
-
-            Picasso.get().load(imageUrl)
-                    .resize(100, 100)
-                    /*.fit()*/
-                    .into(holder.image, new com.squareup.picasso.Callback() {
-
-                        @Override
-                        public void onSuccess() {
-                            holder.image.setVisibility(View.VISIBLE);
-                            holder.image.setAdjustViewBounds(true);
-                            holder.image.setOnClickListener(new View.OnClickListener() {
-                                @Override
-                                public void onClick(View v) {
-                                    // TODO: Open image in web browser
-                                    Intent viewImageIntent = new Intent();
-                                    viewImageIntent.setAction(Intent.ACTION_VIEW);
-                                    viewImageIntent.setData(Uri.parse(imageUrl));
-                                    mContext.startActivity(viewImageIntent);
-                                }
-                            });
-                        }
-
-                        @Override
-                        public void onError(Exception e) {
-                            e.printStackTrace();
-                        }
-                    });
-
-
+            showImage(holder, chatMessage);
         } else {
             ((ViewHolder) holder).image.setVisibility(View.GONE);
         }
     }
 
+    public void showImage(ViewHolder holder, ChatMessage chatMessage) {
+        Log.d(TAG, "onBindViewHolder: chatMessage.hasImageUrl=true");
+        String imageUrl = chatMessage.getImageUrl();
+
+        Picasso.get().load(imageUrl)
+                .resize(100, 100)
+                .into(holder.image, new com.squareup.picasso.Callback() {
+
+                    @Override
+                    public void onSuccess() {
+                        holder.image.setVisibility(View.VISIBLE);
+                        holder.image.setAdjustViewBounds(true);
+                        holder.image.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                Intent viewImageIntent = new Intent();
+                                viewImageIntent.setAction(Intent.ACTION_VIEW);
+                                viewImageIntent.setData(Uri.parse(imageUrl));
+                                mContext.startActivity(viewImageIntent);
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onError(Exception e) {
+                        e.printStackTrace();
+                    }
+                });
+    }
 
     @Override
     public int getItemCount() {
