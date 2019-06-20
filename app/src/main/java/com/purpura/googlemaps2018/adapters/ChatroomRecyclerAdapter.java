@@ -1,7 +1,5 @@
 package com.purpura.googlemaps2018.adapters;
 
-import android.content.Intent;
-import android.net.Uri;
 import android.support.annotation.NonNull;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
@@ -10,7 +8,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
-
 
 import com.purpura.googlemaps2018.Constants;
 import com.purpura.googlemaps2018.R;
@@ -43,13 +40,20 @@ public class ChatroomRecyclerAdapter extends RecyclerView.Adapter<ChatroomRecycl
         ((ViewHolder)holder).chatroomTitle.setText(mChatrooms.get(position).getTitle());
 
         Log.d(TAG, "onBindViewHolder: ");
-        Chatroom chatMessage = mChatrooms.get(position);
-
+        Chatroom chatRoom = mChatrooms.get(position);
+        if (chatRoom.isPublic()) {
+            holder.icon.setImageResource(R.drawable.ic_chat_public);
+        } else {
+            holder.icon.setImageResource(R.drawable.ic_chat_private);
+        }
+        if (chatRoom.getIsShowingNearby()) {
+            holder.icon.setImageResource(R.drawable.ic_chat_nearby);
+        }
         String imageUrl = null;
 
-        if (chatMessage.hasImageUrl()) {
+        if (chatRoom.hasImageUrl()) {
             Log.d(TAG, "onBindViewHolder: chatMessage.hasImageUrl=true");
-            imageUrl = chatMessage.getImageUrl();
+            imageUrl = chatRoom.getImageUrl();
         } else {
             // use a default image URL if there is none
             imageUrl = Constants.DEFAULT_CHATROOM_IMAGE_URL;
@@ -73,6 +77,7 @@ public class ChatroomRecyclerAdapter extends RecyclerView.Adapter<ChatroomRecycl
         TextView chatroomTitle;
         ChatroomRecyclerClickListener clickListener;
         private ImageView image;
+        private ImageView icon;
 
         public ViewHolder(View itemView, ChatroomRecyclerClickListener clickListener) {
             super(itemView);
@@ -80,6 +85,7 @@ public class ChatroomRecyclerAdapter extends RecyclerView.Adapter<ChatroomRecycl
             this.clickListener = clickListener;
             itemView.setOnClickListener(this);
             this.image = itemView.findViewById(R.id.imageView);
+            this.icon = itemView.findViewById(R.id.chatroom_access_icon);
         }
 
         @Override

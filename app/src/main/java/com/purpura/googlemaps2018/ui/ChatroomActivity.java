@@ -720,15 +720,6 @@ public class ChatroomActivity extends AppCompatActivity implements
         Log.d(TAG, "leaveChatroom: ");
         User user = getCurrentUser();
         mChatroom.removeUser(user);
-        FirebaseMessaging.getInstance().subscribeToTopic(mChatroom.getTitle())
-                .addOnCompleteListener(new OnCompleteListener<Void>() {
-                    @Override
-                    public void onComplete(@NonNull Task<Void> task) {
-
-                        Log.d(TAG, "task completed");
-
-                    }
-                });
         finish();
     }
 
