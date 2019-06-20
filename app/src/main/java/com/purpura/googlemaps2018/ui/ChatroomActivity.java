@@ -136,36 +136,27 @@ public class ChatroomActivity extends AppCompatActivity implements
         mChatMessageRecyclerView = findViewById(R.id.chatmessage_recycler_view);
 
         View btnCheckmark = findViewById(R.id.checkmark);
-        btnCheckmark.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Log.d(TAG, "(btnCheckmark) onClick: ");
-                Toast.makeText(chatroomActivity, "Sending message...", Toast.LENGTH_SHORT).show();
-                insertNewMessage();
-            }
+        btnCheckmark.setOnClickListener(v -> {
+            Log.d(TAG, "(btnCheckmark) onClick: ");
+            Toast.makeText(chatroomActivity, "Sending message...", Toast.LENGTH_SHORT).show();
+            insertNewMessage();
         });
 
         View btnGallery = findViewById(R.id.btnGallery);
-        btnGallery.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Log.d(TAG, "(btnGallery) onClick: ");
-                Toast.makeText(chatroomActivity, "Opening gallery...", Toast.LENGTH_SHORT).show();
-                if (checkWriteExternalStoragePermissionGranted()) {
-                    getGalleryImage();
-                }
+        btnGallery.setOnClickListener(v -> {
+            Log.d(TAG, "(btnGallery) onClick: ");
+            Toast.makeText(chatroomActivity, "Opening gallery...", Toast.LENGTH_SHORT).show();
+            if (checkWriteExternalStoragePermissionGranted()) {
+                getGalleryImage();
             }
         });
 
         View btnCamera = findViewById(R.id.btnCamera);
-        btnCamera.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Log.d(TAG, "(btnCamera) onClick: ");
-                Toast.makeText(chatroomActivity, "Opening camera...", Toast.LENGTH_SHORT).show();
-                if (true || checkCameraPermissionGranted()) {
-                    getCameraImage();
-                }
+        btnCamera.setOnClickListener(v -> {
+            Log.d(TAG, "(btnCamera) onClick: ");
+            Toast.makeText(chatroomActivity, "Opening camera...", Toast.LENGTH_SHORT).show();
+            if (true || checkCameraPermissionGranted()) {
+                getCameraImage();
             }
         });
 
