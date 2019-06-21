@@ -227,6 +227,15 @@ public class Chatroom implements Parcelable {
         return null;
     }
 
+    public Boolean getIsUserSharingLocation(User user) {
+        if (user == null) return null;
+        UserSetting userSetting = getSettingForEmail(user.getEmail());
+        if (userSetting != null) {
+            return userSetting.getEnableSharingLocation();
+        }
+        return null;
+    }
+
     public void setPrivate(Boolean aPrivate) {
         this.isPrivate = aPrivate;
     }

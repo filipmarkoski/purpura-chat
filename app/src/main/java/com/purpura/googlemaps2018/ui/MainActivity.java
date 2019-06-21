@@ -17,15 +17,18 @@ import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.SwitchCompat;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.Toast;
@@ -36,6 +39,7 @@ import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.CollectionReference;
@@ -50,10 +54,13 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.firebase.iid.InstanceIdResult;
+import com.mikepenz.materialdrawer.AccountHeader;
+import com.mikepenz.materialdrawer.AccountHeaderBuilder;
 import com.mikepenz.materialdrawer.Drawer;
 import com.mikepenz.materialdrawer.DrawerBuilder;
 import com.mikepenz.materialdrawer.model.DividerDrawerItem;
 import com.mikepenz.materialdrawer.model.PrimaryDrawerItem;
+import com.mikepenz.materialdrawer.model.ProfileDrawerItem;
 import com.mikepenz.materialdrawer.model.SecondaryDrawerItem;
 import com.mikepenz.materialdrawer.model.interfaces.IDrawerItem;
 import com.purpura.googlemaps2018.Constants;
@@ -88,13 +95,13 @@ public class MainActivity extends AppCompatActivity implements
     private UserLocation mUserLocation;
     private SwitchCompat enableNearBySwitch;
 
-
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        getSupportActionBar().setElevation(-10f);
+
 
         mProgressBar = findViewById(R.id.progressBar);
         mChatroomRecyclerView = findViewById(R.id.chatrooms_recycler_view);
@@ -104,14 +111,46 @@ public class MainActivity extends AppCompatActivity implements
         mDb = FirebaseFirestore.getInstance();
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
-        initSupportActionBar();
+        // initSupportActionBar();
         initChatroomRecyclerView();
+        initDrawer();
+    }
 
+    private void initSupportActionBar() {
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(false);
+            getSupportActionBar().setHomeButtonEnabled(true);
+            getSupportActionBar().setTitle("Chatrooms");
+        }
+    }
 
-        /*
-         * Implemented using:
-         * https://github.com/mikepenz/MaterialDrawer/tree/v6.0.9
-         * */
+    private void initChatroomRecyclerView() {
+        mChatroomRecyclerAdapter = new ChatroomRecyclerAdapter(mChatrooms, this);
+        mChatroomRecyclerView.setAdapter(mChatroomRecyclerAdapter);
+        mChatroomRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+    }
+
+    /*
+     * Implemented using:
+     * https://github.com/mikepenz/MaterialDrawer/tree/v6.0.9
+     * */
+    private void initDrawer() {
+        // Create the AccountHeader
+        AccountHeader headerResult = new AccountHeaderBuilder()
+                .withActivity(this)
+                .withHeaderBackground(R.drawable.ic_launcher_background)
+                .addProfiles(
+                        new ProfileDrawerItem().withName("Mike Penz").withEmail("mikepenz@gmail.com").withIcon(getResources().getDrawable(R.drawable.batman))
+                )
+                .withOnAccountHeaderListener(new AccountHeader.OnAccountHeaderListener() {
+                    @Override
+                    public boolean onProfileChanged(View view, com.mikepenz.materialdrawer.model.interfaces.IProfile profile, boolean current) {
+                        return false;
+                    }
+
+                })
+                .build();
+
 
         PrimaryDrawerItem item1 = new PrimaryDrawerItem().withIdentifier(1).withName(R.string.menu_home);
         SecondaryDrawerItem item2 = new SecondaryDrawerItem().withIdentifier(2).withName(R.string.menu_tools);
@@ -119,7 +158,11 @@ public class MainActivity extends AppCompatActivity implements
         //create the drawer and remember the `Drawer` result object
         Drawer result = new DrawerBuilder()
                 .withActivity(this)
+                .withTranslucentStatusBar(false)
+                .withActionBarDrawerToggle(false)
+                .withAccountHeader(headerResult)
                 .addDrawerItems(
+                        new DividerDrawerItem(), new DividerDrawerItem(), new DividerDrawerItem(), new DividerDrawerItem(),
                         item1,
                         new DividerDrawerItem(),
                         item2
@@ -132,44 +175,25 @@ public class MainActivity extends AppCompatActivity implements
                     }
                 })
                 .build();
-    }
-
-    private void initSupportActionBar() {
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setTitle("Chatrooms");
-        }
-    }
-
-    private void initChatroomRecyclerView() {
-        mChatroomRecyclerAdapter = new ChatroomRecyclerAdapter(mChatrooms, this);
-        mChatroomRecyclerView.setAdapter(mChatroomRecyclerAdapter);
-        mChatroomRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        getSupportActionBar().setElevation(0f);
     }
 
     private Integer count = 0;
-    boolean onResumeCalled = false;
+    private boolean onResumeCalled = false;
 
     @Override
     protected void onResume() {
         super.onResume();
-        Configuration config = new Configuration();
+        /*Configuration config = new Configuration();
         config.setToDefaults();
-        Log.d("Config", config.toString());
+        Log.d("Config", config.toString());*/
 
         if (!onResumeCalled) {
             Log.d(TAG, "onResume: ");
             onResumeCalled = !onResumeCalled;
 
             if (checkMapServices() && checkAcesssFineLocationPermissionGranted()) {
-
                 getUserDetails();
-
-                if (count == 0 && getCurrentUser() != null) {
-                    if (getCurrentUser().getSeeNearbyEnabled() != null && enableNearBySwitch != null) {
-                        enableNearBySwitch.setChecked(getCurrentUser().getSeeNearbyEnabled());
-                        mainActivity.count += 1;
-                    }
-                }
             }
 
         }
@@ -261,22 +285,46 @@ public class MainActivity extends AppCompatActivity implements
             ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED*/) {
             // TODO: Consider calling ActivityCompat#requestPermissions
             // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults)
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
             // to handle the case where the user grants the permission. See the documentation
             // for ActivityCompat#requestPermissions for more details.
             return;
         }
 
         mFusedLocationClient.getLastLocation()
-                .addOnFailureListener(e -> Log.e(TAG, "onFailure: ", e))
-                .addOnCompleteListener(task -> {
-                    Log.d(TAG, "onComplete: ");
-                    if (task.isSuccessful() && task.getResult() != null) {
-                        Location location = task.getResult();
-                        GeoPoint geoPoint = new GeoPoint(location.getLatitude(), location.getLongitude());
-                        mUserLocation.setGeo_point(geoPoint);
-                        saveUserLocation();
-                        startLocationService();
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Log.e(TAG, "onFailure: ", e);
+                    }
+                })
+                .addOnSuccessListener(new OnSuccessListener<Location>() {
+                    @Override
+                    public void onSuccess(Location location) {
+                        if (location != null) {
+                            Log.d(TAG, "onSuccess: " + location.toString());
+                            // Toast.makeText(mainActivity, location.toString(), Toast.LENGTH_SHORT).show();
+                        } else {
+                            // Toast.makeText(mainActivity, "Location is null", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                })
+                .addOnCompleteListener(new OnCompleteListener<android.location.Location>() {
+                    @Override
+                    public void onComplete(@NonNull Task<android.location.Location> task) {
+
+                        Log.d(TAG, "onComplete: ");
+
+                        if (task.isSuccessful() && task.getResult() != null) {
+                            Location location = task.getResult();
+                            /*Toast.makeText(mainActivity, location.toString(), Toast.LENGTH_SHORT).show();*/
+                            GeoPoint geoPoint = new GeoPoint(location.getLatitude(), location.getLongitude());
+                            mUserLocation.setGeo_point(geoPoint);
+                            saveUserLocation();
+                            startLocationService();
+                            // getChatrooms();
+                        }
                     }
                 });
     }
@@ -468,17 +516,29 @@ public class MainActivity extends AppCompatActivity implements
         chatroom.setChatroom_id(newChatroomRef.getId());
 
         newChatroomRef.set(chatroom)
-                .addOnFailureListener(e -> {
-                    View parentLayout = findViewById(android.R.id.content);
-                    Snackbar.make(parentLayout, "Unable to create chatroom", Snackbar.LENGTH_SHORT).show();
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Log.e(TAG, "onFailure: ", e);
+                    }
                 })
-                .addOnCompleteListener(task -> {
-                    hideDialog();
-                    if (task.isSuccessful()) {
-                        navChatroomActivity(chatroom);
-                    } else {
-                        View parentLayout = findViewById(android.R.id.content);
-                        Snackbar.make(parentLayout, "Something went wrong.", Snackbar.LENGTH_SHORT).show();
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void aVoid) {
+                        Toast.makeText(mainActivity, "onSuccess", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .addOnCompleteListener(new OnCompleteListener<Void>() {
+                    @Override
+                    public void onComplete(@NonNull Task<Void> task) {
+                        hideDialog();
+
+                        if (task.isSuccessful()) {
+                            navChatroomActivity(chatroom);
+                        } else {
+                            View parentLayout = findViewById(android.R.id.content);
+                            Snackbar.make(parentLayout, "Something went wrong.", Snackbar.LENGTH_SHORT).show();
+                        }
                     }
                 });
     }
@@ -516,7 +576,7 @@ public class MainActivity extends AppCompatActivity implements
             Integer chatroomAgeFrom = Integer.parseInt(editChatroomAgeFrom.getText().toString());
             Integer chatroomAgeTo = Integer.parseInt(editChatroomAgeTo.getText().toString());
 
-            if (!chatroomName.equals("")) {
+            if (!chatroomName.isEmpty()) {
                 createChatroom(chatroomName, isPrivate[0], chatroomAgeFrom, chatroomAgeTo);
             } else {
                 Toast.makeText(MainActivity.this, "Enter a chatroom name", Toast.LENGTH_SHORT).show();
@@ -546,20 +606,29 @@ public class MainActivity extends AppCompatActivity implements
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
+        Log.d(TAG, "onCreateOptionsMenu: ");
         getMenuInflater().inflate(R.menu.menu_main, menu);
 
-        MenuItem enableNearByMenuItem = menu.findItem(R.id.action_enable_nearby);
+        MenuItem enableNearByMenuItem = menu.findItem(R.id.action_enable_nearby_switch);
         enableNearByMenuItem.setActionView(R.layout.switch_layout);
 
         enableNearBySwitch = enableNearByMenuItem.getActionView().findViewById(R.id.switchForActionBar);
         String switchCompatText = getString(R.string.action_enable_nearby);
         enableNearBySwitch.setText(switchCompatText);
-        enableNearBySwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            Log.d(TAG, "onCheckedChanged: ");
-            Toast.makeText(mainActivity, "Near By=" + isChecked, Toast.LENGTH_SHORT).show();
-            getCurrentUser().toggleSeeNearbyEnabled();
-            saveCurrentUser(); // saveCurrentUser() calls getChatrooms when it has finished saving the current user
+        enableNearBySwitch.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Log.d(TAG, "onCheckedChanged: ");
+                Toast.makeText(mainActivity, "Near By=", Toast.LENGTH_SHORT).show();
+                getCurrentUser().toggleSeeNearbyEnabled();
+                saveCurrentUser(); // saveCurrentUser() calls getChatrooms when it has finished saving the current user
+            }
         });
+
+        // onCreateOptionsMenu is called after onResume
+        if (getCurrentUser() != null && getCurrentUser().getSeeNearbyEnabled() != null && enableNearBySwitch != null) {
+            enableNearBySwitch.setChecked(getCurrentUser().getSeeNearbyEnabled());
+        }
 
         return true;
     }

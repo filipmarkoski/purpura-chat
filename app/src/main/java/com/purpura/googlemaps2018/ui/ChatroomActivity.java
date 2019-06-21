@@ -10,6 +10,7 @@ import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
@@ -30,11 +31,13 @@ import android.support.v4.provider.FontRequest;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.SwitchCompat;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.Toast;
 
@@ -136,27 +139,36 @@ public class ChatroomActivity extends AppCompatActivity implements
         mChatMessageRecyclerView = findViewById(R.id.chatmessage_recycler_view);
 
         View btnCheckmark = findViewById(R.id.checkmark);
-        btnCheckmark.setOnClickListener(v -> {
-            Log.d(TAG, "(btnCheckmark) onClick: ");
-            Toast.makeText(chatroomActivity, "Sending message...", Toast.LENGTH_SHORT).show();
-            insertNewMessage();
+        btnCheckmark.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Log.d(TAG, "(btnCheckmark) onClick: ");
+                Toast.makeText(chatroomActivity, "Sending message...", Toast.LENGTH_SHORT).show();
+                insertNewMessage();
+            }
         });
 
         View btnGallery = findViewById(R.id.btnGallery);
-        btnGallery.setOnClickListener(v -> {
-            Log.d(TAG, "(btnGallery) onClick: ");
-            Toast.makeText(chatroomActivity, "Opening gallery...", Toast.LENGTH_SHORT).show();
-            if (checkWriteExternalStoragePermissionGranted()) {
-                getGalleryImage();
+        btnGallery.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Log.d(TAG, "(btnGallery) onClick: ");
+                Toast.makeText(chatroomActivity, "Opening gallery...", Toast.LENGTH_SHORT).show();
+                if (checkWriteExternalStoragePermissionGranted()) {
+                    getGalleryImage();
+                }
             }
         });
 
         View btnCamera = findViewById(R.id.btnCamera);
-        btnCamera.setOnClickListener(v -> {
-            Log.d(TAG, "(btnCamera) onClick: ");
-            Toast.makeText(chatroomActivity, "Opening camera...", Toast.LENGTH_SHORT).show();
-            if (true || checkCameraPermissionGranted()) {
-                getCameraImage();
+        btnCamera.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Log.d(TAG, "(btnCamera) onClick: ");
+                Toast.makeText(chatroomActivity, "Opening camera...", Toast.LENGTH_SHORT).show();
+                if (true || checkCameraPermissionGranted()) {
+                    getCameraImage();
+                }
             }
         });
 
@@ -391,7 +403,10 @@ public class ChatroomActivity extends AppCompatActivity implements
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        } else if (requestCode == Constants.SELECT_THEME) {
+        }
+
+        // Theme Intent
+        else if (requestCode == Constants.SELECT_THEME_REQUEST) {
 
             String themeName = data.getStringExtra("themeName");
             mChatroom.setTheme(themeName);
@@ -418,49 +433,54 @@ public class ChatroomActivity extends AppCompatActivity implements
         final StorageReference imageRef = mImagesFolderRef.child(imageName);
         final UploadTask uploadTask = imageRef.putFile(uri);
 
-        uploadTask.addOnFailureListener(new OnFailureListener() {
-            @Override
-            public void onFailure(@NonNull Exception e) {
-                Toast.makeText(chatroomActivity, e.toString(), Toast.LENGTH_SHORT).show();
-            }
-        }).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
-            @Override
-            public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
-                Toast.makeText(chatroomActivity, "Image uploaded Successfully...", Toast.LENGTH_SHORT).show();
-
-                Task<Uri> urlTask = uploadTask.continueWithTask(new Continuation<UploadTask.TaskSnapshot, Task<Uri>>() {
+        uploadTask
+                .addOnFailureListener(new OnFailureListener() {
                     @Override
-                    public Task<Uri> then(@NonNull Task<UploadTask.TaskSnapshot> task) throws Exception {
-                        if (!task.isSuccessful() && task.getException() != null) {
-                            throw task.getException();
-                        }
-                        return imageRef.getDownloadUrl();
+                    public void onFailure(@NonNull Exception e) {
+                        Toast.makeText(chatroomActivity, e.toString(), Toast.LENGTH_SHORT).show();
                     }
-                }).addOnCompleteListener(new OnCompleteListener<Uri>() {
+                })
+                .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
                     @Override
-                    public void onComplete(@NonNull Task<Uri> task) {
-                        if (task.isSuccessful() && task.getResult() != null) {
-                            Log.d(TAG, "storeImageToFirebaseStorage: onComplete: success");
-                            String imageDownloadUrl = task.getResult().toString();
-                            Toast.makeText(chatroomActivity, imageDownloadUrl, Toast.LENGTH_SHORT).show();
-                            if (requestCode == Constants.SELECT_GALLERY_IMAGE_REQUEST) {
-                                chatroomActivity.storeImageDownloadUrlToCloudFirestore(imageDownloadUrl);
-                            } else if (requestCode == Constants.SELECT_CHATROOM_IMAGE_REQUEST) {
-                                mChatroom.setImageUrl(imageDownloadUrl);
-                                DocumentReference chatroomDocument = mDb
-                                        .collection(getString(R.string.collection_chatrooms))
-                                        .document(mChatroom.getChatroom_id());
-                                chatroomDocument.set(mChatroom);
+                    public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                        Toast.makeText(chatroomActivity, "Image uploaded Successfully...", Toast.LENGTH_SHORT).show();
+
+                        Task<Uri> urlTask = uploadTask.continueWithTask(new Continuation<UploadTask.TaskSnapshot, Task<Uri>>() {
+                            @Override
+                            public Task<Uri> then(@NonNull Task<UploadTask.TaskSnapshot> task) throws Exception {
+                                if (!task.isSuccessful() && task.getException() != null) {
+                                    throw task.getException();
+                                }
+                                return imageRef.getDownloadUrl();
                             }
-                        } else {
-                            // Handle failures
-                            String message = "Firebase Storage upload task failed";
-                            Toast.makeText(chatroomActivity, message, Toast.LENGTH_SHORT).show();
-                        }
+                        }).addOnCompleteListener(new OnCompleteListener<Uri>() {
+                            @Override
+                            public void onComplete(@NonNull Task<Uri> task) {
+                                if (task.isSuccessful() && task.getResult() != null) {
+                                    Log.d(TAG, "storeImageToFirebaseStorage: onComplete: success");
+                                    String imageDownloadUrl = task.getResult().toString();
+                                    Toast.makeText(chatroomActivity, imageDownloadUrl, Toast.LENGTH_SHORT).show();
+                                    if (requestCode == Constants.SELECT_GALLERY_IMAGE_REQUEST ||
+                                            requestCode == Constants.CAPTURE_CAMERA_IMAGE_REQUEST) {
+
+                                        chatroomActivity.storeImageDownloadUrlToCloudFirestore(imageDownloadUrl);
+
+                                    } else if (requestCode == Constants.SELECT_CHATROOM_IMAGE_REQUEST) {
+                                        mChatroom.setImageUrl(imageDownloadUrl);
+                                        DocumentReference chatroomDocument = mDb
+                                                .collection(getString(R.string.collection_chatrooms))
+                                                .document(mChatroom.getChatroom_id());
+                                        chatroomDocument.set(mChatroom);
+                                    }
+                                } else {
+                                    // Handle failures
+                                    String message = "Firebase Storage upload task failed";
+                                    Toast.makeText(chatroomActivity, message, Toast.LENGTH_SHORT).show();
+                                }
+                            }
+                        });
                     }
                 });
-            }
-        });
 
         /*imageRef.putFile(uri).addOnCompleteListener(new OnCompleteListener<UploadTask.TaskSnapshot>() {
             @Override
@@ -539,7 +559,7 @@ public class ChatroomActivity extends AppCompatActivity implements
                                 }
                             }
 
-                            // reverse the last one thousand messages so they come in ascending order
+                            // reverse the last one hundred messages so they come in ascending order
                             // as they were naturally written
                             if (numberOfMessagesEntered == 0) {
                                 Collections.reverse(mMessages);
@@ -712,28 +732,6 @@ public class ChatroomActivity extends AppCompatActivity implements
 
     }
 
-    private void toggleShareLocationInChatroom() {
-        Log.d(TAG, "toggleShareLocationInChatroom: ");
-        User user = getCurrentUser();
-        Boolean nowEnabled = mChatroom.toggleUserLocation(user);
-        DocumentReference userSettingRef = getCurrentUserSetting();
-
-        userSettingRef.set(user).addOnCompleteListener(new OnCompleteListener<Void>() {
-            @Override
-            public void onComplete(@NonNull Task<Void> task) {
-                if (task.isSuccessful()) {
-                    Toast.makeText(chatroomActivity, nowEnabled ? "Location is being shared" : "Location is not shared", Toast.LENGTH_SHORT).show();
-                    restartListFragmentIfVisible();
-                }
-            }
-        });
-    }
-
-    private User getCurrentUser() {
-        return ((UserClient) (getApplicationContext())).getUser();
-        // return FirebaseAuth.getInstance().getCurrentUser();
-    }
-
     private void joinChatroom() {
         Log.d(TAG, "joinChatroom: ");
 
@@ -776,16 +774,23 @@ public class ChatroomActivity extends AppCompatActivity implements
         Log.d(TAG, "onStart: ");
     }
 
+    private boolean onResumeCalled = false;
+
     @Override
     protected void onResume() {
         super.onResume();
         Log.d(TAG, "onResume: ");
-        getIncomingIntent();
-        // initChatroomRecyclerView();
-        // locationSwitch.setChecked(mChatroom.isLocationEnabled(getCurrentUser()));
+        if (!onResumeCalled) {
+            onResumeCalled = !onResumeCalled;
 
-        getChatMessages();
-        getChatroomUsers();
+            getIncomingIntent();
+            getChatMessages();
+            getChatroomUsers();
+
+            // TODO fix switch init
+
+
+        }
     }
 
     @Override
@@ -820,12 +825,6 @@ public class ChatroomActivity extends AppCompatActivity implements
         }
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        Log.d(TAG, "onCreateOptionsMenu: ");
-        getMenuInflater().inflate(R.menu.chatroom_menu, menu);
-        return super.onCreateOptionsMenu(menu);
-    }
 
     UsersInChatFragment getUsersInChatFragment() {
         return (UsersInChatFragment) getSupportFragmentManager().findFragmentByTag(getString(R.string.fragment_user_list));
@@ -886,6 +885,62 @@ public class ChatroomActivity extends AppCompatActivity implements
 
     }
 
+    private Boolean toggleShareLocationInChatroom() {
+        Log.d(TAG, "toggleShareLocationInChatroom: ");
+        User user = getCurrentUser();
+        Boolean nowEnabled = mChatroom.toggleUserLocation(user);
+        DocumentReference userSettingRef = getCurrentUserSetting();
+
+        userSettingRef.set(user).addOnCompleteListener(new OnCompleteListener<Void>() {
+            @Override
+            public void onComplete(@NonNull Task<Void> task) {
+                if (task.isSuccessful()) {
+                    Toast.makeText(chatroomActivity, nowEnabled ? "Location is being shared" : "Location is not shared", Toast.LENGTH_SHORT).show();
+                    restartListFragmentIfVisible();
+                }
+            }
+        });
+        return nowEnabled;
+    }
+
+    private User getCurrentUser() {
+        Log.d(TAG, "getCurrentUser: ");
+        return ((UserClient) (getApplicationContext())).getUser();
+        // return FirebaseAuth.getInstance().getCurrentUser();
+    }
+
+    private SwitchCompat toggleShareLocationSwitch;
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        Log.d(TAG, "onCreateOptionsMenu: ");
+        getMenuInflater().inflate(R.menu.chatroom_menu, menu);
+        MenuItem enableNearByMenuItem = menu.findItem(R.id.action_toggle_share_location_switch);
+        enableNearByMenuItem.setActionView(R.layout.switch_layout);
+
+        toggleShareLocationSwitch = enableNearByMenuItem.getActionView().findViewById(R.id.switchForActionBar);
+        String switchCompatText = getString(R.string.share_location);
+        toggleShareLocationSwitch.setText(switchCompatText);
+        toggleShareLocationSwitch.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Log.d(TAG, "onCheckedChanged: ");
+                Toast.makeText(chatroomActivity, "Share Location=", Toast.LENGTH_SHORT).show();
+                toggleShareLocationInChatroom();
+            }
+        });
+
+        // onCreateOptionsMenu is called after onResume
+        User user = getCurrentUser();
+        Boolean isUserSharingLocation = mChatroom.getIsUserSharingLocation(user);
+        toggleShareLocationSwitch.setChecked(isUserSharingLocation);
+
+        if (toggleShareLocationSwitch == null) {
+            Toast.makeText(chatroomActivity, "Slight error with the location switch", Toast.LENGTH_SHORT).show();
+        }
+
+        return true;
+    }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
@@ -908,7 +963,10 @@ public class ChatroomActivity extends AppCompatActivity implements
                 return true;
             }
             case R.id.action_toggle_share_location: {
-                toggleShareLocationInChatroom();
+                Boolean isLocationBeingSharedInTheChatroom = toggleShareLocationInChatroom();
+                if (isLocationBeingSharedInTheChatroom != null) {
+                    toggleShareLocationSwitch.setChecked(isLocationBeingSharedInTheChatroom);
+                }
                 return true;
             }
             case R.id.action_chatroom_delete: {
@@ -981,7 +1039,7 @@ public class ChatroomActivity extends AppCompatActivity implements
 
     private void showColorPicker() {
         Intent intent = new Intent(this, ThemeActivity.class);
-        startActivityForResult(intent, Constants.SELECT_THEME);
+        startActivityForResult(intent, Constants.SELECT_THEME_REQUEST);
     }
 
     /**
@@ -1171,7 +1229,8 @@ public class ChatroomActivity extends AppCompatActivity implements
     /**
      * @param targetString the string which were are trying to find within the messages in the chatroom
      */
-    private List<ChatMessage> searchChatMessagesByTargetString(/*Chatroom chatroom, */String targetString) {
+    private List<ChatMessage> searchChatMessagesByTargetString(/*Chatroom chatroom, */String
+                                                                                              targetString) {
         if (mMessages != null && mMessages.size() > 0) {
             List<ChatMessage> filteredChatMessages = new ArrayList<>();
 
@@ -1295,7 +1354,8 @@ public class ChatroomActivity extends AppCompatActivity implements
         return checkPermissionGranted(this, permission, permissionRequest);
     }
 
-    private boolean checkPermissionGranted(Activity activity, String permission, int permissionRequest) {
+    private boolean checkPermissionGranted(Activity activity, String permission,
+                                           int permissionRequest) {
         if (ContextCompat.checkSelfPermission(activity, permission) == PackageManager.PERMISSION_GRANTED) {
             String message = String.format("%s granted", permission);
             Log.d(TAG, message);

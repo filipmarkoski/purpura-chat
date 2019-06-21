@@ -19,6 +19,12 @@
         app:showAsAction="never" />
 
     <item
+        android:id="@+id/action_toggle_share_location_switch"
+        android:title="@string/toggle_location"
+        app:showAsAction="ifRoom"
+        app:actionLayout="@layout/switch_layout" />
+
+    <item
         android:id="@+id/action_chatroom_delete"
         android:title="@string/delete_chatroom"
         app:showAsAction="never" />
@@ -27,7 +33,6 @@
         android:id="@+id/action_chatroom_rename"
         android:title="@string/rename_chatroom"
         app:showAsAction="never" />
-
 
     <item
         android:id="@+id/action_chatroom_search"

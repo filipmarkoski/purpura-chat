@@ -21,7 +21,7 @@ public class Constants {
     public static final int CAPTURE_CAMERA_IMAGE_REQUEST = 2;
     public static final int SELECT_CHATROOM_IMAGE_REQUEST = 3;
 
-    public static final int SELECT_THEME = 4;
+    public static final int SELECT_THEME_REQUEST = 4;
     public static final int GOOGLE_SIGN_IN = 5;
     /*
      * Default values

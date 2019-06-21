@@ -8,7 +8,6 @@
         <item name="colorAccent">@color/colorAccent</item>
     </style>
 
-
     <style name="theme_orange" parent="Theme.AppCompat.Light.DarkActionBar">
         <!-- Customize your theme here. -->
         <item name="colorPrimary">@color/md_amber_A200</item>
@@ -37,6 +36,7 @@
         <item name="colorPrimaryDark">@color/md_purple_700</item>
         <item name="colorAccent">@color/md_purple_800</item>
     </style>
+
     <style name="AppTheme.NoActionBar">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>

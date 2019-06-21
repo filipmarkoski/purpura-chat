@@ -1,0 +1,14 @@
+<vector android:height="24dp"
+    android:viewportHeight="1080"
+    android:viewportWidth="1080"
+    android:width="24dp"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+    <path
+        android:fillColor="#fff"
+        android:name="Outer Ellipse"
+        android:pathData="m540 0c298.2 0 540 241.8 540 540c0 298.2 -241.8 540 -540 540c-298.2 0 -540 -241.8 -540 -540c0 -298.2 241.8 -540 540 -540z" />
+    <path
+        android:fillColor="#ff55a3"
+        android:name="Outer Ellipse"
+        android:pathData="m540 15c289.9 0 525 235.1 525 525c0 289.9 -235.1 525 -525 525c-289.9 0 -525 -235.1 -525 -525c0 -289.9 235.1 -525 525 -525zm0 -15c-298.2 0 -540 241.8 -540 540c0 298.2 241.8 540 540 540c298.2 0 540 -241.8 540 -540c0 -298.2 -241.8 -540 -540 -540z" />
+</vector>
