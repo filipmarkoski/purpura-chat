@@ -92,5 +92,6 @@
     <string name="action_change_theme">Change color</string>
     <string name="color_picker_title">Choose color</string>
     <string name="action_change_nickname">Set nickname</string>
+    <string name="title_activity_profile_edit">ProfileEditActivity</string>
 
 </resources>

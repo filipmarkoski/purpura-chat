@@ -14,10 +14,14 @@ import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.NavigationView;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
-import android.support.v7.app.ActionBar;
+import android.support.v4.view.GravityCompat;
+import android.support.v4.widget.DrawerLayout;
+import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -28,20 +32,24 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.CheckBox;
-import android.widget.CompoundButton;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
+
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.RequestOptions;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -54,15 +62,6 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.firebase.iid.InstanceIdResult;
-import com.mikepenz.materialdrawer.AccountHeader;
-import com.mikepenz.materialdrawer.AccountHeaderBuilder;
-import com.mikepenz.materialdrawer.Drawer;
-import com.mikepenz.materialdrawer.DrawerBuilder;
-import com.mikepenz.materialdrawer.model.DividerDrawerItem;
-import com.mikepenz.materialdrawer.model.PrimaryDrawerItem;
-import com.mikepenz.materialdrawer.model.ProfileDrawerItem;
-import com.mikepenz.materialdrawer.model.SecondaryDrawerItem;
-import com.mikepenz.materialdrawer.model.interfaces.IDrawerItem;
 import com.purpura.googlemaps2018.Constants;
 import com.purpura.googlemaps2018.R;
 import com.purpura.googlemaps2018.UserClient;
@@ -78,9 +77,13 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import de.hdodenhof.circleimageview.CircleImageView;
+
+import static com.google.firebase.auth.FirebaseAuth.*;
+
 public class MainActivity extends AppCompatActivity implements
         View.OnClickListener,
-        ChatroomRecyclerAdapter.ChatroomRecyclerClickListener {
+        ChatroomRecyclerAdapter.ChatroomRecyclerClickListener, NavigationView.OnNavigationItemSelectedListener {
 
     private static final String TAG = "MainActivity";
     private final MainActivity mainActivity = this;
@@ -95,13 +98,14 @@ public class MainActivity extends AppCompatActivity implements
     private UserLocation mUserLocation;
     private SwitchCompat enableNearBySwitch;
 
+    private DrawerLayout drawer;
+    private ImageListFragment mImageListFragment;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        getSupportActionBar().setElevation(-10f);
-
 
         mProgressBar = findViewById(R.id.progressBar);
         mChatroomRecyclerView = findViewById(R.id.chatrooms_recycler_view);
@@ -111,15 +115,28 @@ public class MainActivity extends AppCompatActivity implements
         mDb = FirebaseFirestore.getInstance();
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
-        // initSupportActionBar();
+        initSupportActionBar();
         initChatroomRecyclerView();
-        initDrawer();
+
+        //DRAWER BY DUSHICA
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+
+        drawer = findViewById(R.id.drawer_layout);
+        NavigationView navigationView = findViewById(R.id.nav_view);
+        navigationView.setNavigationItemSelectedListener(this);
+
+
+        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this, drawer, toolbar,
+                R.string.navigation_drawer_open, R.string.navigation_drawer_close);
+        drawer.addDrawerListener(toggle);
+        toggle.syncState();
+        //END DRAWER BY DUSHICA
+
     }
 
     private void initSupportActionBar() {
         if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayHomeAsUpEnabled(false);
-            getSupportActionBar().setHomeButtonEnabled(true);
             getSupportActionBar().setTitle("Chatrooms");
         }
     }
@@ -130,72 +147,31 @@ public class MainActivity extends AppCompatActivity implements
         mChatroomRecyclerView.setLayoutManager(new LinearLayoutManager(this));
     }
 
-    /*
-     * Implemented using:
-     * https://github.com/mikepenz/MaterialDrawer/tree/v6.0.9
-     * */
-    private void initDrawer() {
-        // Create the AccountHeader
-        AccountHeader headerResult = new AccountHeaderBuilder()
-                .withActivity(this)
-                .withHeaderBackground(R.drawable.ic_launcher_background)
-                .addProfiles(
-                        new ProfileDrawerItem().withName("Mike Penz").withEmail("mikepenz@gmail.com").withIcon(getResources().getDrawable(R.drawable.batman))
-                )
-                .withOnAccountHeaderListener(new AccountHeader.OnAccountHeaderListener() {
-                    @Override
-                    public boolean onProfileChanged(View view, com.mikepenz.materialdrawer.model.interfaces.IProfile profile, boolean current) {
-                        return false;
-                    }
-
-                })
-                .build();
-
-
-        PrimaryDrawerItem item1 = new PrimaryDrawerItem().withIdentifier(1).withName(R.string.menu_home);
-        SecondaryDrawerItem item2 = new SecondaryDrawerItem().withIdentifier(2).withName(R.string.menu_tools);
-
-        //create the drawer and remember the `Drawer` result object
-        Drawer result = new DrawerBuilder()
-                .withActivity(this)
-                .withTranslucentStatusBar(false)
-                .withActionBarDrawerToggle(false)
-                .withAccountHeader(headerResult)
-                .addDrawerItems(
-                        new DividerDrawerItem(), new DividerDrawerItem(), new DividerDrawerItem(), new DividerDrawerItem(),
-                        item1,
-                        new DividerDrawerItem(),
-                        item2
-                )
-                .withOnDrawerItemClickListener(new Drawer.OnDrawerItemClickListener() {
-                    @Override
-                    public boolean onItemClick(View view, int position, IDrawerItem drawerItem) {
-                        // do something with the clicked item :D
-                        return false;
-                    }
-                })
-                .build();
-        getSupportActionBar().setElevation(0f);
-    }
-
     private Integer count = 0;
-    private boolean onResumeCalled = false;
+    boolean onResumeCalled = false;
 
     @Override
     protected void onResume() {
         super.onResume();
-        /*Configuration config = new Configuration();
+        Configuration config = new Configuration();
         config.setToDefaults();
-        Log.d("Config", config.toString());*/
+        Log.d("Config", config.toString());
 
         if (!onResumeCalled) {
             Log.d(TAG, "onResume: ");
             onResumeCalled = !onResumeCalled;
 
             if (checkMapServices() && checkAcesssFineLocationPermissionGranted()) {
-                getUserDetails();
-            }
 
+                getUserDetails();
+
+                if (count == 0 && getCurrentUser() != null) {
+                    if (getCurrentUser().getSeeNearbyEnabled() != null && enableNearBySwitch != null) {
+                        enableNearBySwitch.setChecked(getCurrentUser().getSeeNearbyEnabled());
+                        mainActivity.count += 1;
+                    }
+                }
+            }
         }
     }
 
@@ -239,7 +215,7 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     private void getUserDetails() {
-        String uid = FirebaseAuth.getInstance().getUid();
+        String uid = getInstance().getUid();
 
         if (mUserLocation == null && uid != null) {
             mUserLocation = new UserLocation();
@@ -269,6 +245,7 @@ public class MainActivity extends AppCompatActivity implements
 
                                 getLastKnownLocation();
                                 getChatrooms();
+                                fillInProfileData(); //DUSHICA ADDED THIS LINE TO MAKE SURE USER AINT NULL WHEN I CALL DIS BIH
                             }
                         }
                     });
@@ -285,57 +262,32 @@ public class MainActivity extends AppCompatActivity implements
             ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED*/) {
             // TODO: Consider calling ActivityCompat#requestPermissions
             // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults)
             // to handle the case where the user grants the permission. See the documentation
             // for ActivityCompat#requestPermissions for more details.
             return;
         }
 
         mFusedLocationClient.getLastLocation()
-                .addOnFailureListener(new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception e) {
-                        Log.e(TAG, "onFailure: ", e);
-                    }
-                })
-                .addOnSuccessListener(new OnSuccessListener<Location>() {
-                    @Override
-                    public void onSuccess(Location location) {
-                        if (location != null) {
-                            Log.d(TAG, "onSuccess: " + location.toString());
-                            // Toast.makeText(mainActivity, location.toString(), Toast.LENGTH_SHORT).show();
-                        } else {
-                            // Toast.makeText(mainActivity, "Location is null", Toast.LENGTH_SHORT).show();
-                        }
-                    }
-                })
-                .addOnCompleteListener(new OnCompleteListener<android.location.Location>() {
-                    @Override
-                    public void onComplete(@NonNull Task<android.location.Location> task) {
-
-                        Log.d(TAG, "onComplete: ");
-
-                        if (task.isSuccessful() && task.getResult() != null) {
-                            Location location = task.getResult();
-                            /*Toast.makeText(mainActivity, location.toString(), Toast.LENGTH_SHORT).show();*/
-                            GeoPoint geoPoint = new GeoPoint(location.getLatitude(), location.getLongitude());
-                            mUserLocation.setGeo_point(geoPoint);
-                            saveUserLocation();
-                            startLocationService();
-                            // getChatrooms();
-                        }
+                .addOnFailureListener(e -> Log.e(TAG, "onFailure: ", e))
+                .addOnCompleteListener(task -> {
+                    Log.d(TAG, "onComplete: ");
+                    if (task.isSuccessful() && task.getResult() != null) {
+                        Location location = task.getResult();
+                        GeoPoint geoPoint = new GeoPoint(location.getLatitude(), location.getLongitude());
+                        mUserLocation.setGeo_point(geoPoint);
+                        saveUserLocation();
+                        startLocationService();
                     }
                 });
     }
-
 
     private void saveUserLocation() {
 
         if (mUserLocation != null) {
             DocumentReference locationRef = mDb
                     .collection(getString(R.string.collection_user_locations))
-                    .document(FirebaseAuth.getInstance().getUid());
+                    .document(getInstance().getUid());
 
             locationRef.set(mUserLocation);
         }
@@ -347,7 +299,7 @@ public class MainActivity extends AppCompatActivity implements
         if (user != null) {
             DocumentReference userRef = mDb
                     .collection(getString(R.string.collection_users))
-                    .document(FirebaseAuth.getInstance().getUid());
+                    .document(getInstance().getUid());
 
             userRef.set(user)
                     .addOnFailureListener(new OnFailureListener() {
@@ -369,7 +321,6 @@ public class MainActivity extends AppCompatActivity implements
                     });
         }
     }
-
     private boolean checkMapServices() {
         return isServicesOK() && isMapsEnabled();
     }
@@ -416,7 +367,6 @@ public class MainActivity extends AppCompatActivity implements
         alert.show();
     }
 
-
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -431,15 +381,6 @@ public class MainActivity extends AppCompatActivity implements
         }
     }
 
-
-    @Override
-    public void onClick(View view) {
-        switch (view.getId()) {
-            case R.id.fab_create_chatroom: {
-                displayCreateChatroomDialog();
-            }
-        }
-    }
 
     private void getChatrooms() {
 
@@ -464,9 +405,9 @@ public class MainActivity extends AppCompatActivity implements
 
                         Chatroom chatroom = doc.toObject(Chatroom.class);
 
-                        if (FirebaseAuth.getInstance().getCurrentUser() != null && mUserLocation != null) {
+                        if (getInstance().getCurrentUser() != null && mUserLocation != null) {
                             String chatroomId = chatroom.getChatroom_id();
-                            String email = FirebaseAuth.getInstance().getCurrentUser().getEmail();
+                            String email = getInstance().getCurrentUser().getEmail();
                             User user = getCurrentUser();
                             Integer currentUserAge = user.getAge();
                             Boolean currentUserSeeNearbyEnabled = user.getSeeNearbyEnabled();
@@ -516,29 +457,17 @@ public class MainActivity extends AppCompatActivity implements
         chatroom.setChatroom_id(newChatroomRef.getId());
 
         newChatroomRef.set(chatroom)
-                .addOnFailureListener(new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception e) {
-                        Log.e(TAG, "onFailure: ", e);
-                    }
+                .addOnFailureListener(e -> {
+                    View parentLayout = findViewById(android.R.id.content);
+                    Snackbar.make(parentLayout, "Unable to create chatroom", Snackbar.LENGTH_SHORT).show();
                 })
-                .addOnSuccessListener(new OnSuccessListener<Void>() {
-                    @Override
-                    public void onSuccess(Void aVoid) {
-                        Toast.makeText(mainActivity, "onSuccess", Toast.LENGTH_SHORT).show();
-                    }
-                })
-                .addOnCompleteListener(new OnCompleteListener<Void>() {
-                    @Override
-                    public void onComplete(@NonNull Task<Void> task) {
-                        hideDialog();
-
-                        if (task.isSuccessful()) {
-                            navChatroomActivity(chatroom);
-                        } else {
-                            View parentLayout = findViewById(android.R.id.content);
-                            Snackbar.make(parentLayout, "Something went wrong.", Snackbar.LENGTH_SHORT).show();
-                        }
+                .addOnCompleteListener(task -> {
+                    hideDialog();
+                    if (task.isSuccessful()) {
+                        navChatroomActivity(chatroom);
+                    } else {
+                        View parentLayout = findViewById(android.R.id.content);
+                        Snackbar.make(parentLayout, "Something went wrong.", Snackbar.LENGTH_SHORT).show();
                     }
                 });
     }
@@ -576,10 +505,11 @@ public class MainActivity extends AppCompatActivity implements
             Integer chatroomAgeFrom = Integer.parseInt(editChatroomAgeFrom.getText().toString());
             Integer chatroomAgeTo = Integer.parseInt(editChatroomAgeTo.getText().toString());
 
-            if (!chatroomName.isEmpty()) {
+            if (!chatroomName.equals("")) {
                 createChatroom(chatroomName, isPrivate[0], chatroomAgeFrom, chatroomAgeTo);
             } else {
                 Toast.makeText(MainActivity.this, "Enter a chatroom name", Toast.LENGTH_SHORT).show();
+
             }
         });
         builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
@@ -596,44 +526,87 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     private void signOut() {
-        FirebaseAuth.getInstance().signOut();
+        getInstance().signOut();
         Intent intent = new Intent(this, LoginActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
     }
 
-
+    @Override
+    public void onClick(View view) {
+        switch (view.getId()) {
+            case R.id.fab_create_chatroom: {
+                displayCreateChatroomDialog();
+                break;
+            }
+            case R.id.user_avatar_imageView:
+            {//DUSHICA SOME EDITS HERE
+                Toast.makeText(MainActivity.this, "Image choose avatar clicked", Toast.LENGTH_SHORT).show();
+                break;
+            }
+        }
+    }
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        Log.d(TAG, "onCreateOptionsMenu: ");
         getMenuInflater().inflate(R.menu.menu_main, menu);
 
-        MenuItem enableNearByMenuItem = menu.findItem(R.id.action_enable_nearby_switch);
+        MenuItem enableNearByMenuItem = menu.findItem(R.id.action_enable_nearby);
         enableNearByMenuItem.setActionView(R.layout.switch_layout);
 
         enableNearBySwitch = enableNearByMenuItem.getActionView().findViewById(R.id.switchForActionBar);
         String switchCompatText = getString(R.string.action_enable_nearby);
         enableNearBySwitch.setText(switchCompatText);
-        enableNearBySwitch.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Log.d(TAG, "onCheckedChanged: ");
-                Toast.makeText(mainActivity, "Near By=", Toast.LENGTH_SHORT).show();
-                getCurrentUser().toggleSeeNearbyEnabled();
-                saveCurrentUser(); // saveCurrentUser() calls getChatrooms when it has finished saving the current user
-            }
+        enableNearBySwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            Log.d(TAG, "onCheckedChanged: ");
+            Toast.makeText(mainActivity, "Near By=" + isChecked, Toast.LENGTH_SHORT).show();
+            getCurrentUser().toggleSeeNearbyEnabled();
+            saveCurrentUser(); // saveCurrentUser() calls getChatrooms when it has finished saving the current user
         });
-
-        // onCreateOptionsMenu is called after onResume
-        if (getCurrentUser() != null && getCurrentUser().getSeeNearbyEnabled() != null && enableNearBySwitch != null) {
-            enableNearBySwitch.setChecked(getCurrentUser().getSeeNearbyEnabled());
-        }
 
         return true;
     }
 
+    //DUSHICA SOME EDITS HERE
+    @Override
+    public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.nav_Email:
+                Toast.makeText(MainActivity.this, "nav_email pressed", Toast.LENGTH_SHORT).show();
+                break;
+            case R.id.nav_Age:
+                Toast.makeText(MainActivity.this, "nav_age pressed", Toast.LENGTH_SHORT).show();
+                break;
+            case R.id.nav_fullName:
+                Toast.makeText(MainActivity.this, "nav_fullName pressed", Toast.LENGTH_SHORT).show();
+                break;
+            case R.id.nav_Bio:
+                Toast.makeText(MainActivity.this, "nav_bio pressed", Toast.LENGTH_SHORT).show();
+                break;
+            case R.id.user_avatar_imageView:
+                Toast.makeText(MainActivity.this, "user_avatar_imageView pressed", Toast.LENGTH_SHORT).show();
+                break;
 
+            case R.id.nav_Edit: {
+                Toast.makeText(MainActivity.this, "nav_edit pressed", Toast.LENGTH_SHORT).show();
+
+                startActivity(new Intent(this, ProfileEditActivity.class));
+                fillInProfileData();
+
+                //recreate();
+                //Intent mIntent = getIntent();
+                //finish();
+                //startActivity(mIntent);
+                return true;
+            }
+            default:
+                Toast.makeText(MainActivity.this, "other pressed", Toast.LENGTH_SHORT).show();
+                break;
+        }
+
+        //drawer.closeDrawer(GravityCompat.START);
+        return true;
+    }
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
@@ -652,6 +625,7 @@ public class MainActivity extends AppCompatActivity implements
                 enableNearBySwitch.setChecked(getCurrentUser().getSeeNearbyEnabled());
                 return true;
             }
+
             default: {
                 return super.onOptionsItemSelected(item);
             }
@@ -762,4 +736,90 @@ public class MainActivity extends AppCompatActivity implements
             }
         }
     }
+
+
+
+
+    //DUSHICA SOME EDITS HERE onBackPressed, fillInProfileData, retrieveProfileImage
+    @Override
+    public void onBackPressed() {
+        if (drawer.isDrawerOpen(GravityCompat.START)) {
+            drawer.closeDrawer(GravityCompat.START);
+        } else {
+            super.onBackPressed();
+        }
+    }
+    public void fillInProfileData(){
+
+        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
+
+        // get menu from navigationView
+        Menu menu = navigationView.getMenu();
+
+        findViewById(R.id.user_avatar_imageView).setOnClickListener(this);
+
+
+        // find MenuItem you want to change
+        MenuItem nav_email = menu.findItem(R.id.nav_Email);
+        MenuItem nav_age = menu.findItem(R.id.nav_Age);
+        MenuItem nav_bio = menu.findItem(R.id.nav_Bio);
+        MenuItem nav_fullName = menu.findItem(R.id.nav_fullName);
+
+        if (getInstance().getCurrentUser() != null){
+            User user=getCurrentUser();
+
+            nav_email.setTitle(user.getEmail());
+
+            StringBuilder sb=new StringBuilder();
+            if(user.getFirstName() != null){
+                sb.append(user.getFirstName());
+                sb.append(" ");
+            }
+            if(user.getLastName() != null){
+                sb.append(user.getLastName());
+            }
+            if(sb.length() == 0){
+                sb.append("No name data");
+            }
+            nav_fullName.setTitle(sb.toString());
+
+            if(user.getAge()>0 && user.getAge()<130){
+                nav_age.setTitle(user.getAge().toString());
+            }
+            else{
+                nav_age.setTitle("No age data");
+            }
+
+            if(user.getBiography()==null || user.getBiography().length()==0 ){
+                nav_bio.setTitle("No bio data");
+            }
+            else{
+                nav_bio.setTitle(user.getBiography());
+            }
+
+            TextView username=(TextView) findViewById(R.id.username_textView);
+            username.setText(user.getUsername());
+
+            retrieveProfileImage();
+        }
+    }
+    private void retrieveProfileImage(){
+        CircleImageView mAvatarImage = findViewById(R.id.user_avatar_imageView);
+
+        RequestOptions requestOptions = new RequestOptions()
+                .error(R.drawable.cwm_logo)
+                .placeholder(R.drawable.cwm_logo);
+
+        int avatar = 0;
+        try{
+            avatar = Integer.parseInt(((UserClient)getApplicationContext()).getUser().getAvatar());
+        }catch (NumberFormatException e){
+            Log.e(TAG, "retrieveProfileImage: no avatar image. Setting default. " + e.getMessage() );
+        }
+        Glide.with(MainActivity.this)
+                .setDefaultRequestOptions(requestOptions)
+                .load(avatar)
+                .into(mAvatarImage);
+    }
+
 }

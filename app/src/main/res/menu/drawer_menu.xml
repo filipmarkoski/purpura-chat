@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:showIn="navigation_view">
+
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/nav_fullName"
+            android:icon="@drawable/ic_person_black_24dp"
+            android:title="Full Name" />
+        <item
+            android:id="@+id/nav_Email"
+            android:icon="@drawable/ic_email_black_24dp"
+            android:title="Email" />
+        <item
+            android:id="@+id/nav_Age"
+            android:icon="@drawable/ic_folder_shared_black_24dp"
+            android:title="Age" />
+        <item
+            android:id="@+id/nav_Bio"
+            android:icon="@drawable/ic_edit_black_24dp"
+            android:title="Bio" />
+
+
+    </group>
+
+    <group>
+        <item android:id="@+id/nav_Edit"
+            android:title="Edit">
+        </item>
+    </group>
+
+</menu>

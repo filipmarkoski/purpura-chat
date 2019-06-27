@@ -11,7 +11,7 @@
         android:layout_centerHorizontal="true"
         android:layout_centerVertical="true"
         android:checked="false"
-        android:text="SwitchCompat (SDK v7+)"
+        android:text="@string/action_enable_nearby"
         android:textOff="OFF"
         android:textOn="ON"
         android:showText="true" />
