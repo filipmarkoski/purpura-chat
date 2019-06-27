@@ -17,9 +17,9 @@
     <application
         android:name=".UserClient"
         android:allowBackup="false"
+        android:icon="@drawable/purpura1"
         android:label="@string/app_name"
-        android:icon="@mipmap/ic_launcher_purpura"
-        android:roundIcon="@drawable/purpuralogo_v03"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         tools:replace="android:allowBackup">
