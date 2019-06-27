@@ -12,6 +12,7 @@
         android:layout_centerVertical="true"
         android:checked="false"
         android:text="@string/action_enable_nearby"
+        android:textSize="12dp"
         android:textOff="OFF"
         android:textOn="ON"
         android:showText="true" />
