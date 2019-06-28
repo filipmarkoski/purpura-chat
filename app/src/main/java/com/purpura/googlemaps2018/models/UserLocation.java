@@ -3,11 +3,12 @@ package com.purpura.googlemaps2018.models;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.support.annotation.NonNull;
+
 import com.google.firebase.firestore.GeoPoint;
 
 import java.util.Date;
 
-public class UserLocation implements Parcelable{
+public class UserLocation implements Parcelable {
 
     private User user;
     private GeoPoint geo_point;

@@ -43,7 +43,9 @@ import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
+import com.google.api.LogDescriptor;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -228,7 +230,7 @@ public class MainActivity extends AppCompatActivity implements
 
                                 getLastKnownLocation();
                                 getChatrooms();
-                                fillInProfileData(); //DUSHICA ADDED THIS LINE TO MAKE SURE USER AINT NULL WHEN I CALL DIS BIH
+                                fillInProfileData(); //DUSHICA ADDED THIS LINE TO MAKE SURE USER isn't null
                             }
                         }
                     });
@@ -241,6 +243,20 @@ public class MainActivity extends AppCompatActivity implements
     private void getLastKnownLocation() {
         Log.d(TAG, "getLastKnownLocation: called.");
 
+        /*
+         * TODO: getLastLocation() is often called without the location services running
+         * getLastLocation must be called appropriately, i.e. after being certain
+         * that the location services are running
+         *
+         * OR
+         *
+         * GoogleApiClient needs to be established and mFusedLocationClient.getLastLocation()
+         * needs to be called from a callback coming after the GoogleApiClient has established
+         * a connection, i.e. in onConnected()
+         *
+         * Source: https://stackoverflow.com/a/29854418/3950168
+         * */
+
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED /*&&
             ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED*/) {
             // TODO: Consider calling ActivityCompat#requestPermissions
@@ -252,21 +268,41 @@ public class MainActivity extends AppCompatActivity implements
         }
 
         mFusedLocationClient.getLastLocation()
-                .addOnFailureListener(e -> Log.e(TAG, "onFailure: ", e))
-                .addOnCompleteListener(task -> {
-                    Log.d(TAG, "onComplete: ");
-                    if (task.isSuccessful() && task.getResult() != null) {
-                        Location location = task.getResult();
-                        GeoPoint geoPoint = new GeoPoint(location.getLatitude(), location.getLongitude());
-                        mUserLocation.setGeo_point(geoPoint);
-                        saveUserLocation();
-                        startLocationService();
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Log.e(TAG, "onFailure: ", e);
+                    }
+                })
+                .addOnSuccessListener(new OnSuccessListener<Location>() {
+                    @Override
+                    public void onSuccess(Location location) {
+                        if (location != null) {
+                            Log.d(TAG, "onSuccess: " + location.toString());
+                        } else {
+                            Log.d(TAG, "onSuccess: location is null");
+                        }
+                    }
+                })
+                .addOnCompleteListener(new OnCompleteListener<Location>() {
+                    @Override
+                    public void onComplete(@NonNull Task<Location> task) {
+                        Log.d(TAG, "onComplete: ");
+                        Log.d(TAG, "onComplete: " + task.isSuccessful());
+                        if (task.isSuccessful() && task.getResult() != null) {
+                            Location location = task.getResult();
+                            GeoPoint geoPoint = new GeoPoint(location.getLatitude(), location.getLongitude());
+                            mUserLocation.setGeo_point(geoPoint);
+                            saveUserLocation();
+                            startLocationService();
+                            Toast.makeText(mainActivity, location.toString(), Toast.LENGTH_SHORT).show();
+                            // getChatrooms();
+                        }
                     }
                 });
     }
 
     private void saveUserLocation() {
-
         if (mUserLocation != null) {
             DocumentReference locationRef = mDb
                     .collection(getString(R.string.collection_user_locations))
