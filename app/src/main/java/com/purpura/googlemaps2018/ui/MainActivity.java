@@ -9,12 +9,10 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.content.res.Configuration;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
-import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
@@ -33,11 +31,9 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.CheckBox;
 import android.widget.EditText;
-import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
-
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.RequestOptions;
@@ -48,8 +44,6 @@ import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.Task;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -79,7 +73,7 @@ import javax.annotation.Nullable;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
-import static com.google.firebase.auth.FirebaseAuth.*;
+import static com.google.firebase.auth.FirebaseAuth.getInstance;
 
 public class MainActivity extends AppCompatActivity implements
         View.OnClickListener,
@@ -100,13 +94,14 @@ public class MainActivity extends AppCompatActivity implements
 
     private DrawerLayout drawer;
     private ImageListFragment mImageListFragment;
+    private boolean editCalled;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        editCalled = false;
         mProgressBar = findViewById(R.id.progressBar);
         mChatroomRecyclerView = findViewById(R.id.chatrooms_recycler_view);
 
@@ -152,10 +147,10 @@ public class MainActivity extends AppCompatActivity implements
     protected void onResume() {
         super.onResume();
 
-        if (!onResumeCalled) {
+        if (!onResumeCalled || editCalled) {
             Log.d(TAG, "onResume: ");
-            onResumeCalled = !onResumeCalled;
-
+            onResumeCalled = true;
+            editCalled = false;
             if (checkMapServices() && checkAcesssFineLocationPermissionGranted()) {
                 getUserDetails();
             }
@@ -205,7 +200,7 @@ public class MainActivity extends AppCompatActivity implements
     private void getUserDetails() {
         String uid = getInstance().getUid();
 
-        if (mUserLocation == null && uid != null) {
+        if (uid != null) {
             mUserLocation = new UserLocation();
 
             DocumentReference currentFirebaseUserDocument = mDb.collection(getString(R.string.collection_users))
@@ -598,7 +593,7 @@ public class MainActivity extends AppCompatActivity implements
 
                 startActivity(new Intent(this, ProfileEditActivity.class));
                 fillInProfileData();
-
+                editCalled = true;
                 //recreate();
                 //Intent mIntent = getIntent();
                 //finish();
@@ -757,7 +752,7 @@ public class MainActivity extends AppCompatActivity implements
 
     public void fillInProfileData() {
 
-        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
+        NavigationView navigationView = findViewById(R.id.nav_view);
 
         // get menu from navigationView
         Menu menu = navigationView.getMenu();
@@ -801,7 +796,7 @@ public class MainActivity extends AppCompatActivity implements
                 nav_bio.setTitle(user.getBiography());
             }
 
-            TextView username = (TextView) findViewById(R.id.username_textView);
+            TextView username = findViewById(R.id.username_textView);
             username.setText(user.getUsername());
 
             retrieveProfileImage();
