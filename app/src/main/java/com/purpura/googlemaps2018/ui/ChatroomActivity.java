@@ -166,7 +166,7 @@ public class ChatroomActivity extends AppCompatActivity implements
             public void onClick(View v) {
                 Log.d(TAG, "(btnCamera) onClick: ");
                 Toast.makeText(chatroomActivity, "Opening camera...", Toast.LENGTH_SHORT).show();
-                if (true || checkCameraPermissionGranted()) {
+                if (checkWriteExternalStoragePermissionGranted() && checkCameraPermissionGranted()) {
                     getCameraImage();
                 }
             }
@@ -263,7 +263,6 @@ public class ChatroomActivity extends AppCompatActivity implements
 
         if (cameraIntent.resolveActivity(getPackageManager()) != null) {
             Log.d(TAG, "getCameraImage: intent resolved");
-
 
             File imageFile = null;
             try {

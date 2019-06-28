@@ -372,6 +372,7 @@ public class MainActivity extends AppCompatActivity implements
 
 
     private void getChatrooms() {
+        // TODO: initializing the nearby switch here might not be the smartest thing to do
         initEnableNearbySwitch();
 
         CollectionReference chatroomsCollection = mDb.collection(getString(R.string.collection_chatrooms));
