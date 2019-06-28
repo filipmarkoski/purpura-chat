@@ -126,7 +126,6 @@ public class MainActivity extends AppCompatActivity implements
         NavigationView navigationView = findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
 
-
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this, drawer, toolbar,
                 R.string.navigation_drawer_open, R.string.navigation_drawer_close);
         drawer.addDrawerListener(toggle);
@@ -147,35 +146,24 @@ public class MainActivity extends AppCompatActivity implements
         mChatroomRecyclerView.setLayoutManager(new LinearLayoutManager(this));
     }
 
-    private Integer count = 0;
     boolean onResumeCalled = false;
 
     @Override
     protected void onResume() {
         super.onResume();
-        Configuration config = new Configuration();
-        config.setToDefaults();
-        Log.d("Config", config.toString());
 
         if (!onResumeCalled) {
             Log.d(TAG, "onResume: ");
             onResumeCalled = !onResumeCalled;
 
             if (checkMapServices() && checkAcesssFineLocationPermissionGranted()) {
-
                 getUserDetails();
-
-                if (count == 0 && getCurrentUser() != null) {
-                    if (getCurrentUser().getSeeNearbyEnabled() != null && enableNearBySwitch != null) {
-                        enableNearBySwitch.setChecked(getCurrentUser().getSeeNearbyEnabled());
-                        mainActivity.count += 1;
-                    }
-                }
             }
         }
     }
 
     private User getCurrentUser() {
+        Log.d(TAG, "getCurrentUser: ");
         return ((UserClient) (getApplicationContext())).getUser();
     }
 
@@ -321,6 +309,7 @@ public class MainActivity extends AppCompatActivity implements
                     });
         }
     }
+
     private boolean checkMapServices() {
         return isServicesOK() && isMapsEnabled();
     }
@@ -383,6 +372,7 @@ public class MainActivity extends AppCompatActivity implements
 
 
     private void getChatrooms() {
+        initEnableNearbySwitch();
 
         CollectionReference chatroomsCollection = mDb.collection(getString(R.string.collection_chatrooms));
 
@@ -540,31 +530,46 @@ public class MainActivity extends AppCompatActivity implements
                 displayCreateChatroomDialog();
                 break;
             }
-            case R.id.user_avatar_imageView:
-            {//DUSHICA SOME EDITS HERE
+            case R.id.user_avatar_imageView: {//DUSHICA SOME EDITS HERE
                 Toast.makeText(MainActivity.this, "Image choose avatar clicked", Toast.LENGTH_SHORT).show();
                 break;
             }
         }
     }
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_main, menu);
 
-        MenuItem enableNearByMenuItem = menu.findItem(R.id.action_enable_nearby);
+        MenuItem enableNearByMenuItem = menu.findItem(R.id.action_enable_nearby_switch);
         enableNearByMenuItem.setActionView(R.layout.switch_layout);
 
         enableNearBySwitch = enableNearByMenuItem.getActionView().findViewById(R.id.switchForActionBar);
         String switchCompatText = getString(R.string.action_enable_nearby);
         enableNearBySwitch.setText(switchCompatText);
-        enableNearBySwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            Log.d(TAG, "onCheckedChanged: ");
-            Toast.makeText(mainActivity, "Near By=" + isChecked, Toast.LENGTH_SHORT).show();
-            getCurrentUser().toggleSeeNearbyEnabled();
-            saveCurrentUser(); // saveCurrentUser() calls getChatrooms when it has finished saving the current user
+        enableNearBySwitch.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Log.d(TAG, "onCheckedChanged: ");
+                Toast.makeText(mainActivity, "Near By=", Toast.LENGTH_SHORT).show();
+                getCurrentUser().toggleSeeNearbyEnabled();
+                saveCurrentUser(); // saveCurrentUser() calls getChatrooms when it has finished saving the current user
+            }
         });
 
+        // onCreateOptionsMenu is called after onResume
+        initEnableNearbySwitch();
+
         return true;
+    }
+
+    private void initEnableNearbySwitch() {
+        User user = getCurrentUser();
+        if (user != null && enableNearBySwitch != null) {
+            enableNearBySwitch.setChecked(user.getSeeNearbyEnabled());
+        } else {
+            Toast.makeText(mainActivity, "Slight error with the nearby switch", Toast.LENGTH_SHORT).show();
+        }
     }
 
     //DUSHICA SOME EDITS HERE
@@ -607,6 +612,7 @@ public class MainActivity extends AppCompatActivity implements
         //drawer.closeDrawer(GravityCompat.START);
         return true;
     }
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
@@ -738,8 +744,6 @@ public class MainActivity extends AppCompatActivity implements
     }
 
 
-
-
     //DUSHICA SOME EDITS HERE onBackPressed, fillInProfileData, retrieveProfileImage
     @Override
     public void onBackPressed() {
@@ -749,7 +753,8 @@ public class MainActivity extends AppCompatActivity implements
             super.onBackPressed();
         }
     }
-    public void fillInProfileData(){
+
+    public void fillInProfileData() {
 
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
 
@@ -765,45 +770,44 @@ public class MainActivity extends AppCompatActivity implements
         MenuItem nav_bio = menu.findItem(R.id.nav_Bio);
         MenuItem nav_fullName = menu.findItem(R.id.nav_fullName);
 
-        if (getInstance().getCurrentUser() != null){
-            User user=getCurrentUser();
+        if (getInstance().getCurrentUser() != null) {
+            User user = getCurrentUser();
 
             nav_email.setTitle(user.getEmail());
 
-            StringBuilder sb=new StringBuilder();
-            if(user.getFirstName() != null){
+            StringBuilder sb = new StringBuilder();
+            if (user.getFirstName() != null) {
                 sb.append(user.getFirstName());
                 sb.append(" ");
             }
-            if(user.getLastName() != null){
+            if (user.getLastName() != null) {
                 sb.append(user.getLastName());
             }
-            if(sb.length() == 0){
+            if (sb.length() == 0) {
                 sb.append("No name data");
             }
             nav_fullName.setTitle(sb.toString());
 
-            if(user.getAge()>0 && user.getAge()<130){
+            if (user.getAge() > 0 && user.getAge() < 130) {
                 nav_age.setTitle(user.getAge().toString());
-            }
-            else{
+            } else {
                 nav_age.setTitle("No age data");
             }
 
-            if(user.getBiography()==null || user.getBiography().length()==0 ){
+            if (user.getBiography() == null || user.getBiography().length() == 0) {
                 nav_bio.setTitle("No bio data");
-            }
-            else{
+            } else {
                 nav_bio.setTitle(user.getBiography());
             }
 
-            TextView username=(TextView) findViewById(R.id.username_textView);
+            TextView username = (TextView) findViewById(R.id.username_textView);
             username.setText(user.getUsername());
 
             retrieveProfileImage();
         }
     }
-    private void retrieveProfileImage(){
+
+    private void retrieveProfileImage() {
         CircleImageView mAvatarImage = findViewById(R.id.user_avatar_imageView);
 
         RequestOptions requestOptions = new RequestOptions()
@@ -811,10 +815,10 @@ public class MainActivity extends AppCompatActivity implements
                 .placeholder(R.drawable.cwm_logo);
 
         int avatar = 0;
-        try{
-            avatar = Integer.parseInt(((UserClient)getApplicationContext()).getUser().getAvatar());
-        }catch (NumberFormatException e){
-            Log.e(TAG, "retrieveProfileImage: no avatar image. Setting default. " + e.getMessage() );
+        try {
+            avatar = Integer.parseInt(((UserClient) getApplicationContext()).getUser().getAvatar());
+        } catch (NumberFormatException e) {
+            Log.e(TAG, "retrieveProfileImage: no avatar image. Setting default. " + e.getMessage());
         }
         Glide.with(MainActivity.this)
                 .setDefaultRequestOptions(requestOptions)

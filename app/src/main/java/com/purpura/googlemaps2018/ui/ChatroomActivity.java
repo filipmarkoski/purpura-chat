@@ -174,26 +174,6 @@ public class ChatroomActivity extends AppCompatActivity implements
 
         // Initialize Firebase-related
         mDb = FirebaseFirestore.getInstance();
-        /*locationSwitch = (Switch) findViewById(R.id.location_switch);
-         *//*locationSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (isChecked) {
-                    enableShareLocationInChatRoom();
-                } else {
-                    disableShareLocationInChatRoom();
-                }
-            }
-        });*//*
-        locationSwitch.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (locationSwitch.isChecked()) {
-                    enableShareLocationInChatRoom();
-                } else {
-                    disableShareLocationInChatRoom();
-                }
-            }
-        });*/
         mAuth = FirebaseAuth.getInstance();
         mStorageRef = FirebaseStorage.getInstance().getReference();
         mImagesFolderRef = mStorageRef.child("images");
@@ -786,10 +766,6 @@ public class ChatroomActivity extends AppCompatActivity implements
             getIncomingIntent();
             getChatMessages();
             getChatroomUsers();
-
-            // TODO fix switch init
-
-
         }
     }
 
@@ -906,7 +882,6 @@ public class ChatroomActivity extends AppCompatActivity implements
     private User getCurrentUser() {
         Log.d(TAG, "getCurrentUser: ");
         return ((UserClient) (getApplicationContext())).getUser();
-        // return FirebaseAuth.getInstance().getCurrentUser();
     }
 
     private SwitchCompat toggleShareLocationSwitch;
