@@ -59,4 +59,10 @@
         android:title="@string/action_change_nickname"
         app:showAsAction="never" />
 
+    <item
+        android:id="@+id/action_chatroom_summary"
+        android:title="@string/action_chatroom_summary"
+        app:showAsAction="never" />
+
+
 </menu>

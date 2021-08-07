@@ -22,7 +22,6 @@ import com.purpura.googlemaps2018.R;
 import com.purpura.googlemaps2018.models.User;
 
 import static android.text.TextUtils.isEmpty;
-import static com.purpura.googlemaps2018.util.Check.doStringsMatch;
 
 
 public class RegisterActivity extends AppCompatActivity implements
@@ -122,7 +121,7 @@ public class RegisterActivity extends AppCompatActivity implements
                         && !isEmpty(mPassword.getText().toString())
                         && !isEmpty(mConfirmPassword.getText().toString())){
 
-                    if(doStringsMatch(mPassword.getText().toString(), mConfirmPassword.getText().toString())){
+                    if(mPassword.getText().toString().equals(mConfirmPassword.getText().toString())){
                         registerNewEmail(mEmail.getText().toString(), mPassword.getText().toString());
                     } else {
                         Toast.makeText(RegisterActivity.this, "Passwords do not Match", Toast.LENGTH_SHORT).show();

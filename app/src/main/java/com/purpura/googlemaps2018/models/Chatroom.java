@@ -19,6 +19,7 @@ public class Chatroom implements Parcelable {
     private String imageUrl;
     private Integer ageFrom;
     private Integer ageTo;
+    private Double predictedReviewRatingAverage;
 
     /*
      * this.users should be this.userSettings!!!
@@ -52,6 +53,7 @@ public class Chatroom implements Parcelable {
         }
         if (lat != null && lon != null)
             geoPoint = new GeoPoint(lat, lon);
+        this.predictedReviewRatingAverage = in.readDouble();
     }
 
     public String getTheme() {
@@ -59,6 +61,7 @@ public class Chatroom implements Parcelable {
     }
 
     public Chatroom() {
+        this.predictedReviewRatingAverage = -1.0;
         this.users = new ArrayList<>();
         this.isPrivate = false;
         this.isShowingNearby = false;
@@ -128,6 +131,7 @@ public class Chatroom implements Parcelable {
             dest.writeValue(null);
             dest.writeValue(null);
         }
+        dest.writeDouble(predictedReviewRatingAverage);
     }
 
     public static final Creator<Chatroom> CREATOR = new Creator<Chatroom>() {
@@ -141,6 +145,15 @@ public class Chatroom implements Parcelable {
             return new Chatroom[size];
         }
     };
+
+
+    public Double getPredictedReviewRatingAverage() {
+        return predictedReviewRatingAverage;
+    }
+
+    public void setPredictedReviewRatingAverage(Double predictedReviewRatingAverage) {
+        this.predictedReviewRatingAverage = predictedReviewRatingAverage;
+    }
 
     public String getTitle() {
         return title;

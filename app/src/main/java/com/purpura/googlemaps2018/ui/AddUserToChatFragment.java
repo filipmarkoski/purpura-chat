@@ -3,7 +3,6 @@ package com.purpura.googlemaps2018.ui;
 import android.content.Context;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
@@ -15,7 +14,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
-import com.google.firebase.firestore.FirebaseFirestore;
 import com.purpura.googlemaps2018.R;
 import com.purpura.googlemaps2018.adapters.UserRecyclerAdapter;
 import com.purpura.googlemaps2018.models.User;
@@ -50,7 +48,7 @@ public class AddUserToChatFragment extends Fragment implements View.OnClickListe
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_add_user_to_chat, container, false);
-        mUserListRecyclerView = view.findViewById(R.id.user_list_recycler_view);
+        mUserListRecyclerView = view.findViewById(R.id.chatroom_map_recycler_view);
         initUserListRecyclerView();
         return view;
     }

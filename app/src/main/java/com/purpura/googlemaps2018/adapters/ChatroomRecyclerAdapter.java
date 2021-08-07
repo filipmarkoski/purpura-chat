@@ -37,10 +37,15 @@ public class ChatroomRecyclerAdapter extends RecyclerView.Adapter<ChatroomRecycl
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        ((ViewHolder)holder).chatroomTitle.setText(mChatrooms.get(position).getTitle());
-
         Log.d(TAG, "onBindViewHolder: ");
         Chatroom chatRoom = mChatrooms.get(position);
+
+        String title = chatRoom.getTitle();
+        if (chatRoom.getPredictedReviewRatingAverage() != null && chatRoom.getPredictedReviewRatingAverage() > 0){
+            title = String.format("%s (%1.2f)", title, chatRoom.getPredictedReviewRatingAverage());
+        }
+        holder.chatroomTitle.setText(title);
+
         if (chatRoom.isPublic()) {
             holder.icon.setImageResource(R.drawable.ic_chat_public);
         } else {

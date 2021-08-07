@@ -33,12 +33,6 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.firestore.DocumentReference;
-import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.maps.DirectionsApiRequest;
 import com.google.maps.GeoApiContext;
 import com.google.maps.PendingResult;
@@ -47,11 +41,12 @@ import com.google.maps.internal.PolylineEncoding;
 import com.google.maps.model.DirectionsResult;
 import com.google.maps.model.DirectionsRoute;
 import com.purpura.googlemaps2018.R;
-import com.purpura.googlemaps2018.adapters.UserRecyclerAdapter;
-import com.purpura.googlemaps2018.models.ClusterMarker;
+import com.purpura.googlemaps2018.adapters.ChatroomRecyclerAdapter;
+import com.purpura.googlemaps2018.models.Chatroom;
+import com.purpura.googlemaps2018.models.ChatroomClusterMarker;
 import com.purpura.googlemaps2018.models.PolylineData;
 import com.purpura.googlemaps2018.models.UserLocation;
-import com.purpura.googlemaps2018.models.UserSetting;
+import com.purpura.googlemaps2018.util.ChatroomClusterMarkerRenderer;
 import com.purpura.googlemaps2018.util.MyClusterManagerRenderer;
 import com.purpura.googlemaps2018.util.ViewWeightAnimationWrapper;
 
@@ -60,51 +55,51 @@ import java.util.List;
 
 import static com.purpura.googlemaps2018.Constants.MAPVIEW_BUNDLE_KEY;
 
-public class UsersInChatFragment extends Fragment implements
+public class ChatroomMapFragment extends Fragment implements
         OnMapReadyCallback,
         View.OnClickListener,
         GoogleMap.OnInfoWindowClickListener,
         GoogleMap.OnPolylineClickListener,
-        UserRecyclerAdapter.UserListRecyclerClickListener
-{
+        ChatroomRecyclerAdapter.ChatroomRecyclerClickListener {
 
-    private static final String TAG = "UsersInChatFragment";
+    private static final String TAG = "ChatroomMapFragment";
     private static final int MAP_LAYOUT_STATE_CONTRACTED = 0;
     private static final int MAP_LAYOUT_STATE_EXPANDED = 1;
 
 
     //widgets
-    private RecyclerView mUserListRecyclerView;
+    private RecyclerView mChatroomRecyclerView;
     private MapView mMapView;
     private RelativeLayout mMapContainer;
 
 
     //vars
-    private ArrayList<UserSetting> mUserList = new ArrayList<>();
-    private UserRecyclerAdapter mUserRecyclerAdapter;
+    private ArrayList<Chatroom> mChatrooms = new ArrayList<>();
+    private ChatroomRecyclerAdapter mChatroomRecyclerAdapter;
     private GoogleMap mGoogleMap;
     private UserLocation mUserPosition;
     private LatLngBounds mMapBoundary;
-    private ClusterManager<ClusterMarker> mClusterManager;
-    private MyClusterManagerRenderer mClusterManagerRenderer;
-    private ArrayList<ClusterMarker> mClusterMarkers = new ArrayList<>();
+    private ArrayList<ChatroomClusterMarker> mChatroomClusterMarkers = new ArrayList<>();
     private int mMapLayoutState = 0;
     private GeoApiContext mGeoApiContext;
     private ArrayList<PolylineData> mPolyLinesData = new ArrayList<>();
     private Marker mSelectedMarker = null;
     private ArrayList<Marker> mTripMarkers = new ArrayList<>();
 
+    private ClusterManager<ChatroomClusterMarker> mClusterManager;
+    private ChatroomClusterMarkerRenderer mClusterManagerRenderer;
 
-    public static UsersInChatFragment newInstance() {
-        return new UsersInChatFragment();
+    public static ChatroomMapFragment newInstance() {
+        return new ChatroomMapFragment();
     }
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (mUserList.size() == 0) { // make sure the list doesn't duplicate by navigating back
+        if (mChatrooms.size() == 0) { // make sure the list doesn't duplicate by navigating back
             if (getArguments() != null) {
-                mUserList.addAll(getArguments().getParcelableArrayList(getString(R.string.intent_user_list)));
+                mChatrooms.addAll(getArguments().getParcelableArrayList(getString(R.string.intent_chatroom_map)));
+                mUserPosition = (UserLocation) getArguments().getParcelable(getString(R.string.intent_current_user_location));
             }
         }
     }
@@ -114,16 +109,15 @@ public class UsersInChatFragment extends Fragment implements
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_users_in_chat_list, container, false);
-        mUserListRecyclerView = view.findViewById(R.id.chatroom_map_recycler_view);
+        View view = inflater.inflate(R.layout.fragment_chatroom_map, container, false);
+        mChatroomRecyclerView = view.findViewById(R.id.chatroom_map_recycler_view);
         mMapView = view.findViewById(R.id.chatroom_map_view);
         view.findViewById(R.id.btn_full_screen_chatroom_map).setOnClickListener(this);
         view.findViewById(R.id.btn_reset_chatroom_map).setOnClickListener(this);
         mMapContainer = view.findViewById(R.id.chatroom_map_container);
 
-        initUserListRecyclerView();
+        initChatroomRecyclerView();
         initGoogleMap(savedInstanceState);
-        setUserPosition();
 
         return view;
     }
@@ -132,147 +126,77 @@ public class UsersInChatFragment extends Fragment implements
     private Runnable mRunnable;
     private static final int LOCATION_UPDATE_INTERVAL = 3000;
 
-    private void startUserLocationsRunnable(){
-        Log.d(TAG, "startUserLocationsRunnable: starting runnable for retrieving updated locations.");
+    private void startChatroomLocationsRunnable() {
+        Log.d(TAG, "startChatroomLocationsRunnable: starting runnable for retrieving updated locations.");
         mHandler.postDelayed(mRunnable = new Runnable() {
             @Override
             public void run() {
-                retrieveUserLocations();
                 mHandler.postDelayed(mRunnable, LOCATION_UPDATE_INTERVAL);
             }
         }, LOCATION_UPDATE_INTERVAL);
     }
 
-    private void stopLocationUpdates(){
+    private void stopLocationUpdates() {
         mHandler.removeCallbacks(mRunnable);
     }
 
-    private void retrieveUserLocations(){
-        Log.d(TAG, "retrieveUserLocations: retrieving location of all users in the chatroom.");
-
-        try{
-            for(final ClusterMarker clusterMarker: mClusterMarkers){
-
-                DocumentReference userLocationRef = FirebaseFirestore.getInstance()
-                        .collection(getString(R.string.collection_user_locations))
-                        .document(clusterMarker.getUser().getUser_id());
-
-                userLocationRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
-                    @Override
-                    public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-                        if(task.isSuccessful()){
-
-                            final UserLocation updatedUserLocation = task.getResult().toObject(UserLocation.class);
-
-                            // update the location
-                            for (int i = 0; i < mClusterMarkers.size(); i++) {
-                                try {
-                                    if (mClusterMarkers.get(i).getUser().getUser_id().equals(updatedUserLocation.getUser().getUser_id())) {
-
-                                        LatLng updatedLatLng = new LatLng(
-                                                updatedUserLocation.getGeo_point().getLatitude(),
-                                                updatedUserLocation.getGeo_point().getLongitude()
-                                        );
-
-                                        mClusterMarkers.get(i).setPosition(updatedLatLng);
-                                        mClusterManagerRenderer.setUpdateMarker(mClusterMarkers.get(i));
-                                    }
-
-
-                                } catch (NullPointerException e) {
-                                    Log.e(TAG, "retrieveUserLocations: NullPointerException: " + e.getMessage());
-                                }
-                            }
-                        }
-                    }
-                });
-            }
-        }catch (IllegalStateException e){
-            Log.e(TAG, "retrieveUserLocations: Fragment was destroyed during Firestore query. Ending query." + e.getMessage() );
-        }
-
-    }
-
-    private void resetMap(){
-        if(mGoogleMap != null) {
+    private void resetMap() {
+        if (mGoogleMap != null) {
             mGoogleMap.clear();
 
-            if(mClusterManager != null){
+            if (mClusterManager != null) {
                 mClusterManager.clearItems();
             }
 
-            if (mClusterMarkers.size() > 0) {
-                mClusterMarkers.clear();
-                mClusterMarkers = new ArrayList<>();
+            if (mChatroomClusterMarkers.size() > 0) {
+                mChatroomClusterMarkers.clear();
+                mChatroomClusterMarkers = new ArrayList<>();
             }
 
-            if(mPolyLinesData.size() > 0){
+            if (mPolyLinesData.size() > 0) {
                 mPolyLinesData.clear();
                 mPolyLinesData = new ArrayList<>();
             }
         }
     }
 
-    private void addMapMarkers(){
+    private void addMapMarkers() {
 
-        if(mGoogleMap != null){
+        if (mGoogleMap != null) {
 
             resetMap();
 
-            if(mClusterManager == null){
-                mClusterManager = new ClusterManager<ClusterMarker>(getActivity().getApplicationContext(), mGoogleMap);
+            if (mClusterManager == null) {
+                mClusterManager = new ClusterManager<ChatroomClusterMarker>(getActivity().getApplicationContext(), mGoogleMap);
             }
+
+
             if(mClusterManagerRenderer == null){
-                mClusterManagerRenderer = new MyClusterManagerRenderer(
-                        getActivity(),
-                        mGoogleMap,
-                        mClusterManager
-                );
+                mClusterManagerRenderer = new ChatroomClusterMarkerRenderer(getActivity(), mGoogleMap, mClusterManager);
                 mClusterManager.setRenderer(mClusterManagerRenderer);
             }
-            mGoogleMap.setOnInfoWindowClickListener(this);
-            UserLocation userLocation = null;
-            int countEnabled = 0;
-            for (UserSetting userSetting : mUserList) {
-                if (userSetting.getEnableSharingLocation()) {
-                    countEnabled++;
-                    userLocation = userSetting.getUserLocation();
 
+            mGoogleMap.setOnInfoWindowClickListener(this);
+
+            int countEnabled = 0;
+            for (Chatroom chatroom : mChatrooms) {
+                if (chatroom.getIsShowingNearby()) {
+                    countEnabled++;
+                    /* TODO: Get chatroomGeoPoint to be used instead of the user's geo-point */
 
                     try {
-                        Log.d(TAG, "addMapMarkers: location: " + userLocation.getGeo_point().toString());
-                        String snippet = "";
-                        if (userLocation.getUser().getUser_id().equals(FirebaseAuth.getInstance().getUid())) {
-                            snippet = "This is you";
-                        } else {
-                            snippet = "Determine route to " + userLocation.getUser().getUsername() + "?";
-                        }
-
-                        int avatar = R.drawable.batman; // set the default avatar
-                        try {
-                            avatar = Integer.parseInt(userLocation.getUser().getAvatar());
-                        } catch (NumberFormatException e) {
-                            Log.d(TAG, "addMapMarkers: no avatar for " + userLocation.getUser().getUsername() + ", setting default.");
-                        }
-                        ClusterMarker newClusterMarker = new ClusterMarker(
-                                new LatLng(userLocation.getGeo_point().getLatitude(), userLocation.getGeo_point().getLongitude()),
-                                userLocation.getUser().getUsername(),
-                                snippet,
-                                avatar,
-                                userLocation.getUser()
-                        );
-                        mClusterManager.addItem(newClusterMarker);
-                        mClusterMarkers.add(newClusterMarker);
-
+                        Log.d(TAG, "addMapMarkers: location: " + chatroom.getGeoPoint().toString());
+                        ChatroomClusterMarker newChatroomClusterMarker = new ChatroomClusterMarker(chatroom);
+                        mClusterManager.addItem(newChatroomClusterMarker);
+                        mChatroomClusterMarkers.add(newChatroomClusterMarker);
                     } catch (NullPointerException e) {
                         Log.e(TAG, "addMapMarkers: NullPointerException: " + e.getMessage());
                     }
-
                 }
             }
             mClusterManager.cluster();
             if (countEnabled > 0)
-            setCameraView();
+                setCameraView();
         }
     }
 
@@ -301,14 +225,6 @@ public class UsersInChatFragment extends Fragment implements
         }
     }
 
-    private void setUserPosition() {
-        for (UserSetting userSetting : mUserList) {
-            if (userSetting.getUser().getUser_id().equals(FirebaseAuth.getInstance().getUid())) {
-                mUserPosition = userSetting.getUserLocation();
-            }
-        }
-    }
-
     private void initGoogleMap(Bundle savedInstanceState) {
         // *** IMPORTANT ***
         // MapView requires that the Bundle you pass contain _ONLY_ MapView SDK
@@ -322,7 +238,7 @@ public class UsersInChatFragment extends Fragment implements
 
         mMapView.getMapAsync(this);
 
-        if(mGeoApiContext == null){
+        if (mGeoApiContext == null) {
             mGeoApiContext = new GeoApiContext.Builder()
                     .apiKey(getString(R.string.google_maps_key))
                     .build();
@@ -330,10 +246,10 @@ public class UsersInChatFragment extends Fragment implements
     }
 
     @RequiresApi(api = Build.VERSION_CODES.N)
-    private void initUserListRecyclerView() {
-        mUserRecyclerAdapter = new UserRecyclerAdapter(mUserList, this);
-        mUserListRecyclerView.setAdapter(mUserRecyclerAdapter);
-        mUserListRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
+    private void initChatroomRecyclerView() {
+        mChatroomRecyclerAdapter = new ChatroomRecyclerAdapter(mChatrooms, this);
+        mChatroomRecyclerView.setAdapter(mChatroomRecyclerAdapter);
+        mChatroomRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
     }
 
     @Override
@@ -353,7 +269,7 @@ public class UsersInChatFragment extends Fragment implements
     public void onResume() {
         super.onResume();
         mMapView.onResume();
-        startUserLocationsRunnable(); // update user locations every 'LOCATION_UPDATE_INTERVAL'
+        startChatroomLocationsRunnable(); // update user locations every 'LOCATION_UPDATE_INTERVAL'
     }
 
     @Override
@@ -370,16 +286,6 @@ public class UsersInChatFragment extends Fragment implements
 
     @Override
     public void onMapReady(GoogleMap map) {
-//        if (ActivityCompat.checkSelfPermission(getActivity(), Manifest.permission.ACCESS_FINE_LOCATION)
-//                != PackageManager.PERMISSION_GRANTED
-//                && ActivityCompat.checkSelfPermission(getActivity(), Manifest.permission.ACCESS_COARSE_LOCATION)
-//                != PackageManager.PERMISSION_GRANTED) {
-//            return;
-//        }
-//        map.setMyLocationEnabled(true);
-//        mGoogleMap = map;
-//        setCameraView();
-
         mGoogleMap = map;
         addMapMarkers();
         mGoogleMap.setOnPolylineClickListener(this);
@@ -405,7 +311,7 @@ public class UsersInChatFragment extends Fragment implements
     }
 
 
-    private void expandMapAnimation(){
+    private void expandMapAnimation() {
         ViewWeightAnimationWrapper mapAnimationWrapper = new ViewWeightAnimationWrapper(mMapContainer);
         ObjectAnimator mapAnimation = ObjectAnimator.ofFloat(mapAnimationWrapper,
                 "weight",
@@ -413,7 +319,7 @@ public class UsersInChatFragment extends Fragment implements
                 100);
         mapAnimation.setDuration(800);
 
-        ViewWeightAnimationWrapper recyclerAnimationWrapper = new ViewWeightAnimationWrapper(mUserListRecyclerView);
+        ViewWeightAnimationWrapper recyclerAnimationWrapper = new ViewWeightAnimationWrapper(mChatroomRecyclerView);
         ObjectAnimator recyclerAnimation = ObjectAnimator.ofFloat(recyclerAnimationWrapper,
                 "weight",
                 50,
@@ -424,7 +330,7 @@ public class UsersInChatFragment extends Fragment implements
         mapAnimation.start();
     }
 
-    private void contractMapAnimation(){
+    private void contractMapAnimation() {
         ViewWeightAnimationWrapper mapAnimationWrapper = new ViewWeightAnimationWrapper(mMapContainer);
         ObjectAnimator mapAnimation = ObjectAnimator.ofFloat(mapAnimationWrapper,
                 "weight",
@@ -432,7 +338,7 @@ public class UsersInChatFragment extends Fragment implements
                 50);
         mapAnimation.setDuration(800);
 
-        ViewWeightAnimationWrapper recyclerAnimationWrapper = new ViewWeightAnimationWrapper(mUserListRecyclerView);
+        ViewWeightAnimationWrapper recyclerAnimationWrapper = new ViewWeightAnimationWrapper(mChatroomRecyclerView);
         ObjectAnimator recyclerAnimation = ObjectAnimator.ofFloat(recyclerAnimationWrapper,
                 "weight",
                 0,
@@ -445,21 +351,20 @@ public class UsersInChatFragment extends Fragment implements
 
     @Override
     public void onClick(View v) {
-        switch (v.getId()){
-            case R.id.btn_full_screen_chatroom_map:{
+        switch (v.getId()) {
+            case R.id.btn_full_screen_chatroom_map: {
 
-                if(mMapLayoutState == MAP_LAYOUT_STATE_CONTRACTED){
+                if (mMapLayoutState == MAP_LAYOUT_STATE_CONTRACTED) {
                     mMapLayoutState = MAP_LAYOUT_STATE_EXPANDED;
                     expandMapAnimation();
-                }
-                else if(mMapLayoutState == MAP_LAYOUT_STATE_EXPANDED){
+                } else if (mMapLayoutState == MAP_LAYOUT_STATE_EXPANDED) {
                     mMapLayoutState = MAP_LAYOUT_STATE_CONTRACTED;
                     contractMapAnimation();
                 }
                 break;
             }
 
-            case R.id.btn_reset_chatroom_map:{
+            case R.id.btn_reset_chatroom_map: {
                 addMapMarkers();
                 break;
             }
@@ -468,7 +373,7 @@ public class UsersInChatFragment extends Fragment implements
 
     @Override
     public void onInfoWindowClick(final Marker marker) {
-        if(marker.getTitle().contains("Trip #")){
+        if (marker.getTitle().contains("Trip #")) {
             final AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
             builder.setMessage("Open Google Maps?")
                     .setCancelable(true)
@@ -480,12 +385,12 @@ public class UsersInChatFragment extends Fragment implements
                             Intent mapIntent = new Intent(Intent.ACTION_VIEW, gmmIntentUri);
                             mapIntent.setPackage("com.google.android.apps.maps");
 
-                            try{
+                            try {
                                 if (mapIntent.resolveActivity(getActivity().getPackageManager()) != null) {
                                     startActivity(mapIntent);
                                 }
-                            }catch (NullPointerException e){
-                                Log.e(TAG, "onClick: NullPointerException: Couldn't open map." + e.getMessage() );
+                            } catch (NullPointerException e) {
+                                Log.e(TAG, "onClick: NullPointerException: Couldn't open map." + e.getMessage());
                                 Toast.makeText(getActivity(), "Couldn't open map", Toast.LENGTH_SHORT).show();
                             }
 
@@ -498,12 +403,10 @@ public class UsersInChatFragment extends Fragment implements
                     });
             final AlertDialog alert = builder.create();
             alert.show();
-        }
-        else{
-            if(marker.getSnippet().equals("This is you")){
+        } else {
+            if (marker.getSnippet().equals("This is you")) {
                 marker.hideInfoWindow();
-            }
-            else{
+            } else {
 
                 final AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
                 builder.setMessage(marker.getSnippet())
@@ -528,7 +431,7 @@ public class UsersInChatFragment extends Fragment implements
 
     }
 
-    private void calculateDirections(Marker marker){
+    private void calculateDirections(Marker marker) {
         Log.d(TAG, "calculateDirections: calculating directions.");
 
         com.google.maps.model.LatLng destination = new com.google.maps.model.LatLng(
@@ -548,44 +451,39 @@ public class UsersInChatFragment extends Fragment implements
         directions.destination(destination).setCallback(new PendingResult.Callback<DirectionsResult>() {
             @Override
             public void onResult(DirectionsResult result) {
-//                Log.d(TAG, "calculateDirections: routes: " + result.routes[0].toString());
-//                Log.d(TAG, "calculateDirections: duration: " + result.routes[0].legs[0].duration);
-//                Log.d(TAG, "calculateDirections: distance: " + result.routes[0].legs[0].distance);
-//                Log.d(TAG, "calculateDirections: geocodedWayPoints: " + result.geocodedWaypoints[0].toString());
-
                 Log.d(TAG, "onResult: successfully retrieved directions.");
                 addPolylinesToMap(result);
             }
 
             @Override
             public void onFailure(Throwable e) {
-                Log.e(TAG, "calculateDirections: Failed to get directions: " + e.getMessage() );
+                Log.e(TAG, "calculateDirections: Failed to get directions: " + e.getMessage());
 
             }
         });
     }
 
-    private void resetSelectedMarker(){
-        if(mSelectedMarker != null){
+    private void resetSelectedMarker() {
+        if (mSelectedMarker != null) {
             mSelectedMarker.setVisible(true);
             mSelectedMarker = null;
             removeTripMarkers();
         }
     }
 
-    private void removeTripMarkers(){
-        for(Marker marker: mTripMarkers){
+    private void removeTripMarkers() {
+        for (Marker marker : mTripMarkers) {
             marker.remove();
         }
     }
 
-    private void addPolylinesToMap(final DirectionsResult result){
+    private void addPolylinesToMap(final DirectionsResult result) {
         new Handler(Looper.getMainLooper()).post(new Runnable() {
             @Override
             public void run() {
                 Log.d(TAG, "run: result routes: " + result.routes.length);
-                if(mPolyLinesData.size() > 0){
-                    for(PolylineData polylineData: mPolyLinesData){
+                if (mPolyLinesData.size() > 0) {
+                    for (PolylineData polylineData : mPolyLinesData) {
                         polylineData.getPolyline().remove();
                     }
                     mPolyLinesData.clear();
@@ -593,14 +491,14 @@ public class UsersInChatFragment extends Fragment implements
                 }
 
                 double duration = 999999999;
-                for(DirectionsRoute route: result.routes){
+                for (DirectionsRoute route : result.routes) {
                     Log.d(TAG, "run: leg: " + route.legs[0].toString());
                     List<com.google.maps.model.LatLng> decodedPath = PolylineEncoding.decode(route.overviewPolyline.getEncodedPath());
 
                     List<LatLng> newDecodedPath = new ArrayList<>();
 
                     // This loops through all the LatLng coordinates of ONE polyline.
-                    for(com.google.maps.model.LatLng latLng: decodedPath){
+                    for (com.google.maps.model.LatLng latLng : decodedPath) {
 
 //                        Log.d(TAG, "run: latlng: " + latLng.toString());
 
@@ -616,7 +514,7 @@ public class UsersInChatFragment extends Fragment implements
 
                     // highlight the fastest route and adjust camera
                     double tempDuration = route.legs[0].duration.inSeconds;
-                    if(tempDuration < duration){
+                    if (tempDuration < duration) {
                         duration = tempDuration;
                         onPolylineClick(polyline);
                         zoomRoute(polyline.getPoints());
@@ -650,10 +548,10 @@ public class UsersInChatFragment extends Fragment implements
     public void onPolylineClick(Polyline polyline) {
 
         int index = 0;
-        for(PolylineData polylineData: mPolyLinesData){
+        for (PolylineData polylineData : mPolyLinesData) {
             index++;
             Log.d(TAG, "onPolylineClick: toString: " + polylineData.toString());
-            if(polyline.getId().equals(polylineData.getPolyline().getId())){
+            if (polyline.getId().equals(polylineData.getPolyline().getId())) {
                 polylineData.getPolyline().setColor(ContextCompat.getColor(getActivity(), R.color.blue1));
                 polylineData.getPolyline().setZIndex(1);
 
@@ -671,8 +569,7 @@ public class UsersInChatFragment extends Fragment implements
                 mTripMarkers.add(marker);
 
                 marker.showInfoWindow();
-            }
-            else{
+            } else {
                 polylineData.getPolyline().setColor(ContextCompat.getColor(getActivity(), R.color.darkGrey));
                 polylineData.getPolyline().setZIndex(0);
             }
@@ -680,13 +577,12 @@ public class UsersInChatFragment extends Fragment implements
     }
 
     @Override
-    public void onUserClicked(int position) {
-        Log.d(TAG, "onUserClicked: selected a user: " + mUserList.get(position).getUser().getUser_id());
+    public void onChatroomSelected(int position) {
+        String chatroom_id = mChatrooms.get(position).getChatroom_id();
+        Log.d(TAG, "onChatroomSelected: selected a chatroom: " + chatroom_id);
 
-        String selectedUserId = mUserList.get(position).getUser().getUser_id();
-
-        for(ClusterMarker clusterMarker: mClusterMarkers){
-            if(selectedUserId.equals(clusterMarker.getUser().getUser_id())){
+        for(ChatroomClusterMarker clusterMarker: mChatroomClusterMarkers){
+            if(chatroom_id.equals(clusterMarker.getChatroom().getChatroom_id())){
                 mGoogleMap.animateCamera(CameraUpdateFactory.newLatLng(
                         new LatLng(clusterMarker.getPosition().latitude, clusterMarker.getPosition().longitude)),
                         600,
@@ -697,21 +593,6 @@ public class UsersInChatFragment extends Fragment implements
         }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

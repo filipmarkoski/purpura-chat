@@ -16,6 +16,7 @@ import android.support.annotation.NonNull;
 import android.support.design.widget.NavigationView;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
@@ -29,6 +30,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ProgressBar;
@@ -45,7 +47,6 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
-import com.google.api.LogDescriptor;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -62,7 +63,10 @@ import com.purpura.googlemaps2018.Constants;
 import com.purpura.googlemaps2018.R;
 import com.purpura.googlemaps2018.UserClient;
 import com.purpura.googlemaps2018.adapters.ChatroomRecyclerAdapter;
+import com.purpura.googlemaps2018.clients.FlaskModelApiInterface;
+import com.purpura.googlemaps2018.clients.FlaskModelApiUtils;
 import com.purpura.googlemaps2018.models.Chatroom;
+import com.purpura.googlemaps2018.models.PredictOneResponse;
 import com.purpura.googlemaps2018.models.User;
 import com.purpura.googlemaps2018.models.UserLocation;
 import com.purpura.googlemaps2018.services.LocationService;
@@ -70,10 +74,14 @@ import com.purpura.googlemaps2018.services.LocationService;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
 import de.hdodenhof.circleimageview.CircleImageView;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 import static com.google.firebase.auth.FirebaseAuth.getInstance;
 
@@ -129,6 +137,32 @@ public class MainActivity extends AppCompatActivity implements
         toggle.syncState();
         //END DRAWER BY DUSHICA
 
+        /* Flask Model */
+        Log.i(TAG, "Flask Model Start");
+        String ReviewText = "Great";
+        FlaskModelApiInterface service = FlaskModelApiUtils.getAPIService();
+        service.predictOne(ReviewText).enqueue(new Callback<PredictOneResponse>() {
+            @Override
+            public void onResponse(Call<PredictOneResponse> call, Response<PredictOneResponse> response) {
+                if (response.isSuccessful()) {
+                    Toast.makeText(mainActivity, response.body().toString(), Toast.LENGTH_LONG).show();
+                    Log.i(TAG, "post submitted to FlaskModelApi." + response.body().toString());
+                } else {
+                    Log.i(TAG, "FlaskModelApi Response isSuccessful=False");
+                }
+
+                Log.i(TAG, "RAW: " + response.raw().toString());
+            }
+
+            @Override
+            public void onFailure(Call<PredictOneResponse> call, Throwable throwable) {
+                Toast.makeText(mainActivity, "Failure PredictOneResponse" + throwable.toString(), Toast.LENGTH_LONG).show();
+                Log.i(TAG, "post submitted to FlaskModelApi." + throwable.toString());
+                Log.e(TAG, "post submitted to FlaskModelApi." + throwable.toString());
+
+            }
+        });
+        Log.i(TAG, "Flask Model End");
     }
 
     private void initSupportActionBar() {
@@ -440,7 +474,6 @@ public class MainActivity extends AppCompatActivity implements
                                 saveCurrentUser();
                             }
 
-
                             Boolean isAccessibleToUser = chatroom.isAccessable(email);
                             Boolean isNearyBy = chatroom.isPublicAndBusiness() && currentUserSeeNearbyEnabled && chatroom.checkProximity(mUserLocation.getGeo_point());
                             Boolean isAlreadyInList = mChatroomIds.contains(chatroomId);
@@ -664,11 +697,46 @@ public class MainActivity extends AppCompatActivity implements
                 return true;
             }
 
+
+            case R.id.action_chatroom_map_list: {
+                inflateChatroomsMapFragment();
+                return true;
+            }
             default: {
                 return super.onOptionsItemSelected(item);
             }
         }
 
+    }
+
+    private void hideSoftKeyboard() {
+        Log.d(TAG, "hideSoftKeyboard: ");
+        this.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+    }
+
+    private void inflateChatroomsMapFragment() {
+        Log.d(TAG, "inflateChatroomsMapFragment: ");
+        hideSoftKeyboard();
+
+        ArrayList<Chatroom> mPublicAndBusinessChatrooms = new ArrayList<Chatroom>();
+        for (Chatroom chatroom : mChatrooms) {
+            if (chatroom.isPublicAndBusiness()) {
+                mPublicAndBusinessChatrooms.add(chatroom);
+            }
+        }
+
+        ChatroomMapFragment fragment = ChatroomMapFragment.newInstance();
+        Bundle bundle = new Bundle();
+        bundle.putParcelableArrayList(getString(R.string.intent_chatroom_map), mPublicAndBusinessChatrooms);
+        bundle.putParcelable(getString(R.string.intent_current_user_location), mUserLocation);
+
+        fragment.setArguments(bundle);
+
+        FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
+        transaction.setCustomAnimations(R.anim.slide_in_up, R.anim.slide_out_up);
+        transaction.replace(R.id.main_fragment_container, fragment, getString(R.string.fragment_chatroom_map));
+        transaction.addToBackStack(getString(R.string.fragment_chatroom_map));
+        transaction.commit();
     }
 
 
@@ -857,5 +925,7 @@ public class MainActivity extends AppCompatActivity implements
                 .load(avatar)
                 .into(mAvatarImage);
     }
+
+
 
 }

@@ -10,7 +10,6 @@ import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
@@ -32,13 +31,14 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.SwitchCompat;
+import android.text.InputType;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.CompoundButton;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.tasks.Continuation;
@@ -66,8 +66,13 @@ import com.purpura.googlemaps2018.Constants;
 import com.purpura.googlemaps2018.R;
 import com.purpura.googlemaps2018.UserClient;
 import com.purpura.googlemaps2018.adapters.ChatMessageRecyclerAdapter;
+import com.purpura.googlemaps2018.clients.FlaskModelApiInterface;
+import com.purpura.googlemaps2018.clients.FlaskModelApiUtils;
 import com.purpura.googlemaps2018.models.ChatMessage;
 import com.purpura.googlemaps2018.models.Chatroom;
+import com.purpura.googlemaps2018.models.PredictOneResponse;
+import com.purpura.googlemaps2018.models.SummarizeRequest;
+import com.purpura.googlemaps2018.models.SummarizeResponse;
 import com.purpura.googlemaps2018.models.Themes;
 import com.purpura.googlemaps2018.models.User;
 import com.purpura.googlemaps2018.models.UserLocation;
@@ -81,6 +86,10 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class ChatroomActivity extends AppCompatActivity implements
         AddUserToChatFragment.OnUserSelectedListener,
@@ -505,7 +514,7 @@ public class ChatroomActivity extends AppCompatActivity implements
     // the first time the function is called is odd, thus the first time results in true
     private boolean theNumberTheFunctionIsCalledIsOdd = true;
     private int numberOfMessagesEntered = 0;
-
+    private Double predictedReviewRatingAverage = -1.;
     private void getChatMessages() {
         Log.d(TAG, "getChatMessages: ");
 
@@ -542,11 +551,34 @@ public class ChatroomActivity extends AppCompatActivity implements
                             // as they were naturally written
                             if (numberOfMessagesEntered == 0) {
                                 Collections.reverse(mMessages);
+                                Log.i(TAG, "getChatMessages: After Collections.reverse");
+
+                                /* Calculate the Average PredictedReviewRating of the ChatMessages */
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                                    Log.i(TAG, "getChatMessages:OptionalDouble");
+
+                                    double sum = 0;
+                                    long count = 0;
+                                    for (ChatMessage mMessage : mMessages) {
+                                        if (mMessage != null && mMessage.getPredictedReviewRating() != null) {
+                                            sum += mMessage.getPredictedReviewRating();
+                                            count++;
+                                        }
+                                    }
+
+                                    if (predictedReviewRatingAverage <= 0 && count > 0){
+                                        predictedReviewRatingAverage = sum / count;
+                                        mChatroom.setPredictedReviewRatingAverage(predictedReviewRatingAverage);
+                                    }
+
+                                    /* TODO: After it is calculated persist it to the ChatRoom database
+                                    *   and then feature it in the MainActivity's RecyclerView */
+                                    Log.i(TAG, "getChatMessages:predictedReviewRatingAverage=" + predictedReviewRatingAverage);
+                                    }
+                                }
                             }
                             numberOfMessagesEntered += 1;
                             mChatMessageRecyclerAdapter.notifyDataSetChanged();
-
-                        }
                     }
                 });
     }
@@ -566,6 +598,7 @@ public class ChatroomActivity extends AppCompatActivity implements
                     .collection(getString(R.string.collection_chat_messages))
                     .document();
 
+            /* Create the ChatMessage object */
             ChatMessage chatMessage = new ChatMessage();
             chatMessage.setMessage(message);
             chatMessage.setMessage_id(chatMessageDoc.getId());
@@ -574,13 +607,58 @@ public class ChatroomActivity extends AppCompatActivity implements
             Log.d(TAG, "insertNewMessage: retrieved user client: " + user.toString());
             chatMessage.setUser(user);
 
+            // TODO Fetch PredictedReviewRating
 
-            chatMessageDoc.set(chatMessage);
+            /* Flask Model */
+            Log.i(TAG, "Flask Model Start");
+            String ReviewText = message;
+            FlaskModelApiInterface service = FlaskModelApiUtils.getAPIService();
+            service.predictOne(ReviewText).enqueue(new Callback<PredictOneResponse>() {
+                @SuppressLint("DefaultLocale")
+                @Override
+                public void onResponse(Call<PredictOneResponse> call, Response<PredictOneResponse> response) {
+                    if (response.isSuccessful()) {
+                        Toast.makeText(chatroomActivity, response.body().toString(), Toast.LENGTH_LONG).show();
+
+                        Double predictedReviewRating = response.body().getPredictedReviewRating();
+                        chatMessage.setPredictedReviewRating(predictedReviewRating);
+                        Log.i(TAG, "chatMessage submitted to FlaskModelApi." + chatMessage.toString());
+
+                        if (chatMessage.getMessage() != null) {
+                            /* Append the PredictedReviewRating value in brackets
+                            at the end of the chat message when displaying it */
+                            chatMessage.setMessage(String.format("%s (%1.2f)",
+                                    chatMessage.getMessage(), chatMessage.getPredictedReviewRating()));
+
+                            /* Persist the ChatMessage object  */
+                            chatMessageDoc.set(chatMessage);
+
+                            mMessageIds.add(chatMessage.getMessage_id());
+                            mMessages.add(chatMessage);
+                            mChatMessageRecyclerAdapter.notifyDataSetChanged();
+                        }
+                    } else {
+                        Log.i(TAG, "chatMessage FlaskModelApi Response isSuccessful=False");
+                    }
+                    Log.i(TAG, "chatMessage Response RAW: " + response.raw().toString());
+                }
+
+                @Override
+                public void onFailure(Call<PredictOneResponse> call, Throwable throwable) {
+                    Toast.makeText(chatroomActivity, "chatMessage Failure PredictOneResponse" + throwable.toString(), Toast.LENGTH_LONG).show();
+                    Log.i(TAG, "chatMessage Failure submitted to FlaskModelApi." + throwable.toString());
+
+                    /* Persist the ChatMessage object as it is */
+                    chatMessageDoc.set(chatMessage);
+
+                    mMessageIds.add(chatMessage.getMessage_id());
+                    mMessages.add(chatMessage);
+                    mChatMessageRecyclerAdapter.notifyDataSetChanged();
+                }
+            });
+            Log.i(TAG, "Flask Model End");
 
             chatroomActivity.editTextMessage.setText("");
-            mMessageIds.add(chatMessage.getMessage_id());
-            mMessages.add(chatMessage);
-            mChatMessageRecyclerAdapter.notifyDataSetChanged();
         }
     }
 
@@ -810,21 +888,18 @@ public class ChatroomActivity extends AppCompatActivity implements
         Log.d(TAG, "isUsersInChatFragmentVisible: ");
         UsersInChatFragment fragment = getUsersInChatFragment();
         return fragment != null;// && fragment.isVisible();
-
     }
 
     public void restartListFragmentIfVisible() {
         Log.d(TAG, "restartListFragmentIfVisible: ");
         UsersInChatFragment fragment = getUsersInChatFragment();
         if (fragment != null) {
-
             getSupportFragmentManager()
-                    .beginTransaction().
-                    remove(fragment).commit();
+                    .beginTransaction()
+                    .remove(fragment)
+                    .commit();
             inflateUsersInChatFragment();
-
         }
-
     }
 
     private boolean isAddUserToChatFragmentVisible() {
@@ -971,6 +1046,10 @@ public class ChatroomActivity extends AppCompatActivity implements
             }
             case R.id.action_chatroom_change_nickname: {
                 showNicknameDialog();
+                return true;
+            }
+            case R.id.action_chatroom_summary: {
+                displayChatroomSummaryDialog();
                 return true;
             }
             default: {
@@ -1130,6 +1209,75 @@ public class ChatroomActivity extends AppCompatActivity implements
         builder.show();
     }
 
+    private void displayChatroomSummaryDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(chatroomActivity);
+        builder.setTitle("Chatroom Messages Summary");
+
+        View searchChatroomDialog = View.inflate(this, R.layout.layout_chatroom_summary, null);
+
+        TextView summaryTextView = (TextView) searchChatroomDialog.findViewById(R.id.summary_text);
+
+        /* Flask Model */
+        Log.i(TAG, "SummarizeResponse Flask Model Start");
+
+        String summarizationApproach = "GensimExtractiveSummary";
+        ArrayList<String> textSegments = new ArrayList<>();
+        Integer nSentences = 3;
+        for (ChatMessage message : mMessages) {
+            if (message.getMessage() != null) {
+                String textSegment = message.getMessage();
+                if (message.getPredictedReviewRating() != null) {
+                    textSegment = textSegment.substring(0, textSegment.length() - 7);
+                }
+                textSegments.add(textSegment);
+            }
+        }
+
+        FlaskModelApiInterface service = FlaskModelApiUtils.getAPIService();
+        service.summarize(new SummarizeRequest(summarizationApproach, textSegments, nSentences))
+                .enqueue(new Callback<SummarizeResponse>() {
+                    @SuppressLint("DefaultLocale")
+                    @Override
+                    public void onResponse(Call<SummarizeResponse> call, Response<SummarizeResponse> response) {
+                        if (response.isSuccessful()) {
+                            Toast.makeText(chatroomActivity, response.body().toString(), Toast.LENGTH_LONG).show();
+
+                            String summary = response.body().getSummary();
+
+                            if (summary != null) {
+                                Log.i(TAG, "chatRoom SummarizeResponse obtained from FlaskModelApi." + summary);
+                                summaryTextView.setText(summary);
+                                // editChatMessageTargetString.setSelection(editChatMessageTargetString.getText().length());
+                                // editChatMessageTargetString.setEnabled(false);
+                                // editChatMessageTargetString.setInputType(InputType.TYPE_NULL);
+                            } else {
+                                summaryTextView.setText("No available summary.");
+                            }
+                        } else {
+                            Log.i(TAG, "chatRoom FlaskModelApi SummarizeResponse isSuccessful=False");
+                        }
+                        Log.i(TAG, "chatMessage SummarizeResponse RAW: " + response.raw().toString());
+                    }
+
+                    @Override
+                    public void onFailure(Call<SummarizeResponse> call, Throwable throwable) {
+                        Toast.makeText(chatroomActivity, "chatMessage Failure SummarizeResponse" + throwable.toString(), Toast.LENGTH_LONG).show();
+                        Log.i(TAG, "chatMessage SummarizeResponse Failure submitted to FlaskModelApi." + throwable.toString());
+                    }
+                });
+        Log.i(TAG, "SummarizeResponse Flask Model End");
+
+        builder.setView(searchChatroomDialog).setCancelable(true);
+
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+            }
+        });
+
+        builder.show();
+    }
     /**
      * Dialog-related worker functions
      */

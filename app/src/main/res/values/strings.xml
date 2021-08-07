@@ -9,6 +9,7 @@
     <string name="action_sign_in">Sign in or register</string>
     <string name="action_sign_in_short">Sign in</string>
     <string name="action_sign_out">Sign out</string>
+    <string name="action_chatroom_map_list">Chatroom Map</string>
     <string name="error_invalid_email">This email address is invalid</string>
     <string name="error_invalid_password">This password is too short</string>
     <string name="error_incorrect_password">This password is incorrect</string>
@@ -33,7 +34,9 @@
 
     <!-- Intent extras -->
     <string name="intent_chatroom">intent_chatroom</string>
+    <string name="intent_current_user_location">intent_current_user_location</string>
     <string name="intent_user_list">intent_user_list</string>
+    <string name="intent_chatroom_map">intent_chatroom_map</string>
     <string name="intent_user_locations">intent_user_locations</string>
     <string name="intent_location">intent_location</string>
     <string name="intent_filtered_chat_messages">intent_filtered_chat_messages</string>
@@ -41,8 +44,8 @@
     <!-- Service and Broadcasts -->
     <string name="gps_location">gps_location</string>
 
-
     <!-- Fragments Names -->
+    <string name="fragment_chatroom_map">Chatroom Map</string>
     <string name="fragment_user_list">User List</string>
     <string name="fragment_image_list">Image List</string>
     <string name="fragment_add_user_to_chatroom">Add_user_to_chatroom</string>
@@ -92,6 +95,7 @@
     <string name="action_change_theme">Change color</string>
     <string name="color_picker_title">Choose color</string>
     <string name="action_change_nickname">Set nickname</string>
+    <string name="action_chatroom_summary">Summarize messages</string>
     <string name="title_activity_profile_edit">ProfileEditActivity</string>
 
 </resources>

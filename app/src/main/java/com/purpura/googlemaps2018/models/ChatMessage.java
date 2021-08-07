@@ -13,18 +13,20 @@ public class ChatMessage implements Parcelable {
     private String message_id;
     private String imageUrl;
     private Date timestamp;
+    private Double predictedReviewRating;
 
     public ChatMessage() {
         this.timestamp = new Date();
     }
 
-    public ChatMessage(User user, String message, String message_id, String imageUrl, Date timestamp) {
+    public ChatMessage(User user, String message, String message_id, String imageUrl,
+                       Date timestamp, Double predictedReviewRating) {
         this.user = user;
         this.message = message;
         this.message_id = message_id;
         this.imageUrl = imageUrl;
         this.timestamp = timestamp;
-
+        this.predictedReviewRating = predictedReviewRating;
     }
 
     public ChatMessage(Parcel in) {
@@ -33,7 +35,7 @@ public class ChatMessage implements Parcelable {
         this.message_id = in.readString();
         this.imageUrl = in.readString();
         this.timestamp = (Date) in.readValue(Date.class.getClassLoader());
-
+        this.predictedReviewRating = in.readDouble();
     }
 
     public static final Creator<ChatMessage> CREATOR = new Creator<ChatMessage>() {
@@ -55,7 +57,7 @@ public class ChatMessage implements Parcelable {
         dest.writeString(this.message_id);
         dest.writeString(this.imageUrl);
         dest.writeValue(this.timestamp);
-
+        dest.writeValue(this.predictedReviewRating);
     }
 
 
@@ -107,7 +109,14 @@ public class ChatMessage implements Parcelable {
         this.timestamp = timestamp;
     }
 
-    @NonNull
+    public Double getPredictedReviewRating() {
+        return predictedReviewRating;
+    }
+
+    public void setPredictedReviewRating(Double predictedReviewRating) {
+        this.predictedReviewRating = predictedReviewRating;
+    }
+
     @Override
     public String toString() {
         return "ChatMessage{" +
@@ -116,6 +125,7 @@ public class ChatMessage implements Parcelable {
                 ", message_id='" + message_id + '\'' +
                 ", imageUrl='" + imageUrl + '\'' +
                 ", timestamp=" + timestamp +
+                ", predictedReviewRating=" + predictedReviewRating +
                 '}';
     }
 
